@@ -41,10 +41,7 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
     sc = SparkContext.getOrCreate(sparkConf)
     sqlContext = SqlContextFactory.getOrCreate(sc)
     spark = sqlContext.sparkSession
-
-
   }
-
 
   private def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean, file: File ):Unit = {
     if (base64Encode) {
