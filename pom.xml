@@ -1,0 +1,283 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>feature-overview-spark</groupId>
+    <version>0.0.1-SNAPSHOT</version>
+    <artifactId>feature-stats</artifactId>
+    <name>feature-stats</name>
+    <organization>
+        <name>GoPro</name>
+    </organization>
+    <properties>
+        <dse.spark.version>2.1.1</dse.spark.version>
+        <dse.mockito.version>1.10.19</dse.mockito.version>
+        <dse.scala.version>2.11</dse.scala.version>
+        <dse.scala.binary.version>2.11</dse.scala.binary.version>
+        <dse.scala-tools.version>2.15.2</dse.scala-tools.version>
+        <dse.maven-core.version>3.3.9</dse.maven-core.version>
+        <dse.spark.version>2.1.1</dse.spark.version>
+    </properties>
+
+    <build>
+        <sourceDirectory>src/main/scala</sourceDirectory>
+        <plugins>
+            <!-- Create the generated protobuf folder   -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.7</version>
+                <executions>
+                    <execution>
+                        <id>mkdir-generated-sources</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.build.directory}/generated-sources/protobuf" />
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+            <!-- Add the generated folder as a source -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>1.12</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources/protobuf</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+            <!-- Compile the proto file(s) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.5.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-scala-protobuf-classes</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <mainClass>scalapb.ScalaPBC</mainClass>
+                            <cleanupDaemonThreads>false</cleanupDaemonThreads>
+                            <includePluginDependencies>true</includePluginDependencies>
+                            <classpathScope>compile</classpathScope>
+                            <executableDependency>
+                                <groupId>com.thesamet.scalapb</groupId>
+                                <artifactId>scalapbc_2.11</artifactId>
+                            </executableDependency>
+                            <arguments>
+                                <argument>-v300</argument> <!-- for protoc v3.0.0, can be 261 for v2.6.1 -->
+                                <argument>--throw</argument> <!-- Important: otherwise scalapbc will kill the VM -->
+                                <argument>--proto_path=${project.basedir}/src/main/protobuf</argument>
+                                <argument>--proto_path=${project.basedir}/third_party</argument>
+                                <argument>--scala_out=${project.build.directory}/generated-sources/protobuf</argument>
+
+                                <!--If you need to pass generator parameters to ScalaPB, then instead of the &#45;&#45;scala_out line above,-->
+                                <!--have something like this:-->
+                                <!--<argument>&#45;&#45;scala_out=single_line_to_string,java_conversions:${project.build.directory}/generated-sources/protobuf</argument>-->
+
+                                <argument>${project.basedir}/src/main/protobuf/feature_statistics.proto</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.thesamet.scalapb</groupId>
+                        <artifactId>scalapbc_2.11</artifactId>
+                        <version>0.7.0-rc4</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>org.scala-tools</groupId>
+                <artifactId>maven-scala-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest-maven-plugin</artifactId>
+                <version>1.0</version>
+                <configuration>
+                    <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+                    <junitxml>.</junitxml>
+                    <filereports>WDF TestSuite.txt</filereports>
+                    <tagsToExclude>integration</tagsToExclude>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.2</version>
+                <configuration>
+                    <scalaCompatVersion>${dse.scala.binary.version}</scalaCompatVersion>
+                    <scalaVersion>${dse.scala.version}</scalaVersion>
+                </configuration>
+                <!-- other settings-->
+                <executions>
+                    <execution>
+                        <id>scala-compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+        </plugins>
+        <finalName>feature-stats-${version}</finalName>
+
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.11</artifactId>
+            <version>${dse.spark.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.xerial.snappy</groupId>
+                    <artifactId>snappy-java</artifactId>
+                </exclusion>
+            </exclusions>
+            <!--<scope>provided</scope>-->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-hive_2.11</artifactId>
+            <version>${dse.spark.version}</version>
+            <!--<scope>provided</scope>-->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.11</artifactId>
+            <version>${dse.spark.version}</version>
+            <!--<scope>provided</scope>-->
+        </dependency>
+
+
+
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-core</artifactId>
+            <version>${dse.maven-core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${dse.mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.scalatest/scalatest_2.11 -->
+        <!-- change back to scala 2.10 version of scalatest for spark -->
+
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.11</artifactId>
+            <version>3.0.0</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.thesamet.scalapb</groupId>
+            <artifactId>scalapb-runtime_2.11</artifactId>
+            <version>0.7.0-rc4</version>
+        </dependency>
+
+        <dependency>
+                <groupId>com.thesamet.scalapb</groupId>
+            <artifactId>scalapb-json4s_2.11</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+
+    </dependencies>
+
+
+
+</project>
