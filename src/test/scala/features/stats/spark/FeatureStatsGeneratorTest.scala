@@ -11,6 +11,8 @@ import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
+
+
 /**
 # ==============================================================================
   *# Licensed under the Apache License, Version 2.0 (the "License");
@@ -296,7 +298,7 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
   }
 
 
-  test("integration") {
+  ignore("integration") {
     val features = Array("Age", "Workclass", "fnlwgt", "Education", "Education-Num", "Marital Status",
                          "Occupation", "Relationship", "Race", "Sex", "Capital Gain", "Capital Loss",
                          "Hours per week", "Country", "Target")
@@ -335,4 +337,5 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
     import java.nio.file.{Files, Paths}
     Files.write(Paths.get(fileName), content.getBytes(StandardCharsets.UTF_8))
   }
+
 }
