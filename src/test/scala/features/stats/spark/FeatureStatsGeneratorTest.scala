@@ -2,10 +2,7 @@ package features.stats.spark
 
 import java.io.File
 import java.nio.file.{Files, Paths}
-import java.text.SimpleDateFormat
-import java.time.temporal.ChronoUnit
 
-import featureStatistics.feature_statistics.Histogram.HistogramType.QUANTILES
 import featureStatistics.feature_statistics.{DatasetFeatureStatisticsList, FeatureNameStatistics}
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -110,193 +107,193 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
 
   }
 
-
-  test("testGenEntry") {
-    val spark = sqlContext.sparkSession
-    import spark.implicits._
-
-    var arr1 = Seq[Double] (1.0, 2.0, Double.NaN, Double.NaN, 3.0, null.asInstanceOf[Double])
-    var df = sc.parallelize(arr1).toDF("TestFeatureDouble")
-
-    var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
-    var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
-    var entry:DataEntry = dataset.entries.head
-
-    assert(2 === entry.missing)
-
-    val arr2 = Seq[String] ("a","b", Float.NaN.toString, "c", null.asInstanceOf[String])
-    df = sc.parallelize(arr2).toDF("TestFeatureStr")
-    dataframes = List(NamedDataFrame(name = "testDataSet2", df))
-    dataset   = generator.toDataEntries(dataframes).head
-    entry = dataset.entries.head
-
-    assert(2 === entry.missing)
-
-  }
-  test ("convertTimeTypes") {
-    val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
-    val ts1 = new java.sql.Timestamp(simpleDateFormat.parse("2005-02-25").getTime)
-    val ts2 = new java.sql.Timestamp(simpleDateFormat.parse("2006-02-25").getTime)
-
-    val spark = sqlContext.sparkSession
-    import org.apache.spark.sql.functions._
-    import spark.implicits._
-
-    var arr = Seq[String]("2005-02-25", "2006-02-25")
-    var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_date($"TestFeatureDate"))
-    var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
-    var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
-    var entry:DataEntry = dataset.entries.head
-    val vals = entry.values.collect().map(r => r.getAs[Long](0))
-
-    assert(Array(1109318400000L, 1140854400000L) === vals)
-
-
-    import java.time.{LocalDate, Month}
-
-    val startDate = LocalDate.of(2008, Month.JANUARY, 1)
-    val endDate = LocalDate.of(2009, Month.JANUARY, 1)
-    val numberOfDays = ChronoUnit.DAYS.between(startDate, endDate)
-    var arr1 = Seq[Long](numberOfDays*24*60*60*1000*1000)
-    var df1 = sc.parallelize(arr1).toDF("TestFeatureDate")
-    var dataframes1 = List(NamedDataFrame(name = "testDataSet1", df1))
-    var dataset1:DataEntrySet = generator.toDataEntries(dataframes1).head
-    var entry1:DataEntry = dataset1.entries.head
-    val vals1 = entry1.values.collect().map(r => r.getAs[Long](0))
-
-    assert(vals1.head === 31622400000000L)
-  }
-
-
-  test("convertDataType") {
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Integer"))
-    //Boolean and time types treated as int
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Short"))
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Long"))
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("java.math.BigDecimal"))
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Boolean"))
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Date"))
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("java.util.Date"))
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("java.sql.Date"))
-    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("java.sql.Timestamp"))
-    assert(FeatureNameStatistics.Type.FLOAT === generator.convertDataType("Double"))
-    assert(FeatureNameStatistics.Type.FLOAT === generator.convertDataType("Float"))
-    assert(FeatureNameStatistics.Type.STRING === generator.convertDataType("String"))
-    // Unsupported types treated as string for now
-    assert(FeatureNameStatistics.Type.STRING === generator.convertDataType("Unit"))
-  }
-
-
-  test("testGetDatasetsProtoSequenceExampleHistogram") {
-    val sp= sqlContext.sparkSession
-    import sp.implicits._
-    var df = sc.parallelize(Seq(1,2,2,3)).toDF("featureInt")
-    var countDF = sc.parallelize(Seq (1, 2, 1)).toDF("counts")
-    var featLensDF = sc.parallelize(Seq (1, 2, 1)).toDF("feat_lens")
-
-    val entry: DataEntry = DataEntry( featureName = "featureInt",
-                                      `type` = FeatureNameStatistics.Type.INT,
-                                      values = df,
-                                      counts = countDF,
-                                      missing = 0,
-                                      feat_lens = Some(featLensDF))
-
-    var dataset:DataEntrySet = DataEntrySet(name ="testDataset",size=3, entries = Array(entry))
-    val p = generator.genDatasetFeatureStats(List(dataset))
-    val hist = p.datasets.head.features.head.getNumStats.getCommonStats.getFeatureListLengthHistogram
-    val hist2 = p.datasets.head.features.head.getNumStats.getCommonStats.getNumValuesHistogram
-
-    val buckets = hist.buckets
-    assert(QUANTILES === hist.`type`)
-    assert(10 === buckets.length)
-    assert(1 === buckets.head.lowValue)
-    assert(1 === buckets.head.highValue)
-    assert(.3 === buckets.head.sampleCount)
-    assert(1.8 === buckets(9).lowValue)
-    assert(2 === buckets(9).highValue)
-    assert(.3 === buckets(9).sampleCount)
-
-
-  }
-
-
-  test("testGetDatasetsProtoWithWhitelist") {
-
-    val sp= sqlContext.sparkSession
-    import sp.implicits._
-    var df1 = sc.parallelize(Seq(1,2,3)).toDF("testFeature")
-    var countDF1 = sc.parallelize(Seq (1, 1, 1)).toDF("counts")
-    val entry1: DataEntry = DataEntry( featureName = "testFeature",
-      `type` = FeatureNameStatistics.Type.INT,
-      values = df1,
-      counts = countDF1,
-      missing = 0 )
-
-    var df2 = sc.parallelize(Seq(5,6)).toDF("ignoreFeature")
-    var countDF2 = sc.parallelize(Seq (1, 1)).toDF("counts")
-    val entry2: DataEntry = DataEntry( featureName = "ignoreFeature",
-      `type` = FeatureNameStatistics.Type.INT,
-      values = df2,
-      counts = countDF2,
-      missing = 1 )
-
-
-    var dataset:DataEntrySet = DataEntrySet(name ="testDataset",size=3, entries = Array(entry1,entry2))
-    val p = generator.genDatasetFeatureStats(List(dataset), Set("testFeature"))
-    assert(1 === p.datasets.length)
-    val testData = p.datasets.head
-
-    assert("testDataset" === testData.name)
-    assert(3 === testData.numExamples)
-    testData.features.foreach {f =>
-      println("feauture name = "+ f.name)
-    }
-    assert(1 === testData.features.length)
-    val numfeat = testData.features.head
-    assert("testFeature" === numfeat.name)
-    assert(1 === numfeat.getNumStats.min)
-
-  }
-
-  test("GetDatasetsProtoWithMaxHistigramLevelsCount") {
-    val spark = sqlContext.sparkSession
-    import spark.implicits._
-
-    val data = Seq[String]("hi", "good", "hi","hi","a", "a")
-    val df :DataFrame= sqlContext.sparkContext.parallelize(data).toDF("TestFeatureString")
-    val dataframes = List(NamedDataFrame(name = "testDataSet", df))
-//    # Getting proto from ProtoFromDataFrames instead of GetDatasetsProto
-//    # directly to avoid any hand written values ex: size of dataset.
-    val p = generator.protoFromDataFrames(dataframes, histgmCatLevelsCount=Some(2))
-
-
-    assert(1 === p.datasets.size)
-    val testData = p.datasets.head
-    assert("testDataSet" === testData.name)
-    assert(6 === testData.numExamples)
-    assert(1 === testData.features.size)
-    val numfeat = testData.features.head
-    assert("TestFeatureString" === numfeat.name)
-    val topValues = numfeat.getStringStats.topValues
-    
-    assert(3 === topValues.head.frequency)
-    assert("hi" === topValues.head.value)
-
-    assert(3 === numfeat.getStringStats.unique)
-    assert(2 === numfeat.getStringStats.avgLength)
-
-    val rank_hist = numfeat.getStringStats.rankHistogram
-    assert(rank_hist.nonEmpty)
-
-    val buckets = rank_hist.get.buckets
-    assert(2 === buckets.size)
-    assert("hi" === buckets.head.label)
-    assert(3 === buckets.head.sampleCount)
-    assert("a" === buckets(1).label)
-    assert(2 === buckets(1).sampleCount)
-
-  }
-
+//
+//  test("testGenEntry") {
+//    val spark = sqlContext.sparkSession
+//    import spark.implicits._
+//
+//    var arr1 = Seq[Double] (1.0, 2.0, Double.NaN, Double.NaN, 3.0, null.asInstanceOf[Double])
+//    var df = sc.parallelize(arr1).toDF("TestFeatureDouble")
+//
+//    var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
+//    var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
+//    var entry:DataEntry = dataset.entries.head
+//
+//    assert(2 === entry.missing)
+//
+//    val arr2 = Seq[String] ("a","b", Float.NaN.toString, "c", null.asInstanceOf[String])
+//    df = sc.parallelize(arr2).toDF("TestFeatureStr")
+//    dataframes = List(NamedDataFrame(name = "testDataSet2", df))
+//    dataset   = generator.toDataEntries(dataframes).head
+//    entry = dataset.entries.head
+//
+//    assert(2 === entry.missing)
+//
+//  }
+//  test ("convertTimeTypes") {
+//    val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+//    val ts1 = new java.sql.Timestamp(simpleDateFormat.parse("2005-02-25").getTime)
+//    val ts2 = new java.sql.Timestamp(simpleDateFormat.parse("2006-02-25").getTime)
+//
+//    val spark = sqlContext.sparkSession
+//    import org.apache.spark.sql.functions._
+//    import spark.implicits._
+//
+//    var arr = Seq[String]("2005-02-25", "2006-02-25")
+//    var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_date($"TestFeatureDate"))
+//    var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
+//    var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
+//    var entry:DataEntry = dataset.entries.head
+//    val vals = entry.values.collect().map(r => r.getAs[Long](0))
+//
+//    assert(Array(1109318400000L, 1140854400000L) === vals)
+//
+//
+//    import java.time.{LocalDate, Month}
+//
+//    val startDate = LocalDate.of(2008, Month.JANUARY, 1)
+//    val endDate = LocalDate.of(2009, Month.JANUARY, 1)
+//    val numberOfDays = ChronoUnit.DAYS.between(startDate, endDate)
+//    var arr1 = Seq[Long](numberOfDays*24*60*60*1000*1000)
+//    var df1 = sc.parallelize(arr1).toDF("TestFeatureDate")
+//    var dataframes1 = List(NamedDataFrame(name = "testDataSet1", df1))
+//    var dataset1:DataEntrySet = generator.toDataEntries(dataframes1).head
+//    var entry1:DataEntry = dataset1.entries.head
+//    val vals1 = entry1.values.collect().map(r => r.getAs[Long](0))
+//
+//    assert(vals1.head === 31622400000000L)
+//  }
+//
+//
+//  test("convertDataType") {
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Integer"))
+//    //Boolean and time types treated as int
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Short"))
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Long"))
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("java.math.BigDecimal"))
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Boolean"))
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("Date"))
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("java.util.Date"))
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("java.sql.Date"))
+//    assert(FeatureNameStatistics.Type.INT === generator.convertDataType("java.sql.Timestamp"))
+//    assert(FeatureNameStatistics.Type.FLOAT === generator.convertDataType("Double"))
+//    assert(FeatureNameStatistics.Type.FLOAT === generator.convertDataType("Float"))
+//    assert(FeatureNameStatistics.Type.STRING === generator.convertDataType("String"))
+//    // Unsupported types treated as string for now
+//    assert(FeatureNameStatistics.Type.STRING === generator.convertDataType("Unit"))
+//  }
+//
+//
+//  test("testGetDatasetsProtoSequenceExampleHistogram") {
+//    val sp= sqlContext.sparkSession
+//    import sp.implicits._
+//    var df = sc.parallelize(Seq(1,2,2,3)).toDF("featureInt")
+//    var countDF = sc.parallelize(Seq (1, 2, 1)).toDF("counts")
+//    var featLensDF = sc.parallelize(Seq (1, 2, 1)).toDF("feat_lens")
+//
+//    val entry: DataEntry = DataEntry( featureName = "featureInt",
+//                                      `type` = FeatureNameStatistics.Type.INT,
+//                                      values = df,
+//                                      counts = countDF,
+//                                      missing = 0,
+//                                      feat_lens = Some(featLensDF))
+//
+//    var dataset:DataEntrySet = DataEntrySet(name ="testDataset",size=3, entries = Array(entry))
+//    val p = generator.genDatasetFeatureStats(List(dataset))
+//    val hist = p.datasets.head.features.head.getNumStats.getCommonStats.getFeatureListLengthHistogram
+//    val hist2 = p.datasets.head.features.head.getNumStats.getCommonStats.getNumValuesHistogram
+//
+//    val buckets = hist.buckets
+//    assert(QUANTILES === hist.`type`)
+//    assert(10 === buckets.length)
+//    assert(1 === buckets.head.lowValue)
+//    assert(1 === buckets.head.highValue)
+//    assert(.3 === buckets.head.sampleCount)
+//    assert(1.8 === buckets(9).lowValue)
+//    assert(2 === buckets(9).highValue)
+//    assert(.3 === buckets(9).sampleCount)
+//
+//
+//  }
+//
+//
+//  test("testGetDatasetsProtoWithWhitelist") {
+//
+//    val sp= sqlContext.sparkSession
+//    import sp.implicits._
+//    var df1 = sc.parallelize(Seq(1,2,3)).toDF("testFeature")
+//    var countDF1 = sc.parallelize(Seq (1, 1, 1)).toDF("counts")
+//    val entry1: DataEntry = DataEntry( featureName = "testFeature",
+//      `type` = FeatureNameStatistics.Type.INT,
+//      values = df1,
+//      counts = countDF1,
+//      missing = 0 )
+//
+//    var df2 = sc.parallelize(Seq(5,6)).toDF("ignoreFeature")
+//    var countDF2 = sc.parallelize(Seq (1, 1)).toDF("counts")
+//    val entry2: DataEntry = DataEntry( featureName = "ignoreFeature",
+//      `type` = FeatureNameStatistics.Type.INT,
+//      values = df2,
+//      counts = countDF2,
+//      missing = 1 )
+//
+//
+//    var dataset:DataEntrySet = DataEntrySet(name ="testDataset",size=3, entries = Array(entry1,entry2))
+//    val p = generator.genDatasetFeatureStats(List(dataset), Set("testFeature"))
+//    assert(1 === p.datasets.length)
+//    val testData = p.datasets.head
+//
+//    assert("testDataset" === testData.name)
+//    assert(3 === testData.numExamples)
+//    testData.features.foreach {f =>
+//      println("feauture name = "+ f.name)
+//    }
+//    assert(1 === testData.features.length)
+//    val numfeat = testData.features.head
+//    assert("testFeature" === numfeat.name)
+//    assert(1 === numfeat.getNumStats.min)
+//
+//  }
+//
+//  test("GetDatasetsProtoWithMaxHistigramLevelsCount") {
+//    val spark = sqlContext.sparkSession
+//    import spark.implicits._
+//
+//    val data = Seq[String]("hi", "good", "hi","hi","a", "a")
+//    val df :DataFrame= sqlContext.sparkContext.parallelize(data).toDF("TestFeatureString")
+//    val dataframes = List(NamedDataFrame(name = "testDataSet", df))
+////    # Getting proto from ProtoFromDataFrames instead of GetDatasetsProto
+////    # directly to avoid any hand written values ex: size of dataset.
+//    val p = generator.protoFromDataFrames(dataframes, histgmCatLevelsCount=Some(2))
+//
+//
+//    assert(1 === p.datasets.size)
+//    val testData = p.datasets.head
+//    assert("testDataSet" === testData.name)
+//    assert(6 === testData.numExamples)
+//    assert(1 === testData.features.size)
+//    val numfeat = testData.features.head
+//    assert("TestFeatureString" === numfeat.name)
+//    val topValues = numfeat.getStringStats.topValues
+//
+//    assert(3 === topValues.head.frequency)
+//    assert("hi" === topValues.head.value)
+//
+//    assert(3 === numfeat.getStringStats.unique)
+//    assert(2 === numfeat.getStringStats.avgLength)
+//
+//    val rank_hist = numfeat.getStringStats.rankHistogram
+//    assert(rank_hist.nonEmpty)
+//
+//    val buckets = rank_hist.get.buckets
+//    assert(2 === buckets.size)
+//    assert("hi" === buckets.head.label)
+//    assert(3 === buckets.head.sampleCount)
+//    assert("a" === buckets(1).label)
+//    assert(2 === buckets(1).sampleCount)
+//
+//  }
+//
 
   ignore("integration") {
     val features = Array("Age", "Workclass", "fnlwgt", "Education", "Education-Num", "Marital Status",
