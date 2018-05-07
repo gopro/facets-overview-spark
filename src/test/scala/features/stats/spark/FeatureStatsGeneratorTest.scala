@@ -2,7 +2,6 @@ package features.stats.spark
 
 import java.io.File
 import java.nio.file.{Files, Paths}
-import java.text.SimpleDateFormat
 import java.time.temporal.ChronoUnit
 
 import featureStatistics.feature_statistics.Histogram.HistogramType.QUANTILES
@@ -134,9 +133,11 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
 
   }
   test ("convertTimeTypes") {
-    val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
-    val ts1 = new java.sql.Timestamp(simpleDateFormat.parse("2005-02-25").getTime)
-    val ts2 = new java.sql.Timestamp(simpleDateFormat.parse("2006-02-25").getTime)
+
+    import java.time.{LocalDateTime, ZoneOffset}
+    val ts1 = LocalDateTime.of(2005, 2, 25, 0, 0).toInstant(ZoneOffset.UTC).getEpochSecond
+    val ts2 = LocalDateTime.of(2006, 2, 25, 0, 0).toInstant(ZoneOffset.UTC).getEpochSecond
+
 
     val spark = sqlContext.sparkSession
     import org.apache.spark.sql.functions._
