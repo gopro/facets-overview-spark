@@ -39,6 +39,8 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
 
   override protected def beforeAll(): Unit = {
     val sparkConf = new SparkConf().setMaster(SPARK_MASTER_URL).setAppName(appName)
+    //sparkConf.set("spark.sql.session.timeZone", "GMT")
+
     sc = SparkContext.getOrCreate(sparkConf)
     sqlContext = SqlContextFactory.getOrCreate(sc)
     spark = sqlContext.sparkSession
@@ -134,10 +136,15 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
   }
   test ("convertTimeTypes") {
 
+    import java.util.TimeZone
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+
     import java.time.{LocalDateTime, ZoneOffset}
     val ts1 = LocalDateTime.of(2005, 2, 25, 0, 0).toInstant(ZoneOffset.UTC).getEpochSecond
     val ts2 = LocalDateTime.of(2006, 2, 25, 0, 0).toInstant(ZoneOffset.UTC).getEpochSecond
 
+    println("ts1 =" + ts1)
+    println("ts2 =" + ts2)
 
     val spark = sqlContext.sparkSession
     import org.apache.spark.sql.functions._
@@ -147,11 +154,12 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
     var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_date($"TestFeatureDate"))
     var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
     var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
+    assert(dataset.entries.head.`type`.isInt === true)
+
     var entry:DataEntry = dataset.entries.head
     val vals = entry.values.collect().map(r => r.getAs[Long](0))
 
-    assert(Array(1109318400000L, 1140854400000L) === vals)
-
+    assert(Array(ts1*1000, ts2*1000) === vals)
 
     import java.time.{LocalDate, Month}
 

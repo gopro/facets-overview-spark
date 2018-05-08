@@ -5,7 +5,7 @@ import featureStatistics.feature_statistics.StringStatistics.FreqAndValue
 import featureStatistics.feature_statistics.{Histogram => FSHistogram, _}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.expressions.UserDefinedFunction
-import org.apache.spark.sql.functions.{col, udf}
+import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Column, DataFrame, Row}
 
@@ -671,10 +671,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     *
     */
   private def convertToNumberDataFrame(columnDF: DataFrame): DataFrame = {
-
-    import org.apache.spark.sql.functions._
     val spark = columnDF.sqlContext.sparkSession
-    import spark.implicits._
     val field = columnDF.schema.fields(0)
 
     val df = field.dataType match {
