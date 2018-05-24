@@ -20,7 +20,6 @@
     </properties>
 
     <build>
-        <sourceDirectory>src/main/scala</sourceDirectory>
         <plugins>
             <!-- Create the generated protobuf folder   -->
             <plugin>
@@ -274,6 +273,19 @@
                 <groupId>com.thesamet.scalapb</groupId>
             <artifactId>scalapb-json4s_2.11</artifactId>
             <version>0.7.0</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.tensorflow/spark-tensorflow-connector -->
+        <dependency>
+            <groupId>org.tensorflow</groupId>
+            <artifactId>spark-tensorflow-connector_2.11</artifactId>
+            <version>1.6.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.tensorflow</groupId>
+            <artifactId>tensorflow</artifactId>
+            <version>1.8.0</version>
         </dependency>
 
     </dependencies>

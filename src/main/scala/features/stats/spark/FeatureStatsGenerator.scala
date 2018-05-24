@@ -1,4 +1,4 @@
-  package features.stats.spark
+package features.stats.spark
 import featureStatistics.feature_statistics.FeatureNameStatistics.Type._
 import featureStatistics.feature_statistics.FeatureNameStatistics.{Type => ProtoDataType}
 import featureStatistics.feature_statistics.StringStatistics.FreqAndValue
@@ -159,6 +159,8 @@ object FeatureStatsGenerator {
   val CheckZeroInfinite : UserDefinedFunction= udf((value : Double) =>checkZeroNanInfiniteFun(value))
 
 }
+
+
 class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
   import FeatureStatsGenerator._
@@ -621,7 +623,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
 
   //Quantile histogram (different from data histogram)
-  def populateQuantilesHistogramBucket(valuedf: DataFrame, dsIndex:Int) : Seq[FSHistogram.Bucket]= {
+  private[features] def populateQuantilesHistogramBucket(valuedf: DataFrame, dsIndex:Int) : Seq[FSHistogram.Bucket]= {
 
       val colName = valuedf.schema.fields(0).name
       val numQuantileBuckets = 10
