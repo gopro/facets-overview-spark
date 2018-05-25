@@ -8,6 +8,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.tagobjects.Slow
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
+
+
 /**
   * Created by chesterchen on 5/10/18.
   */
@@ -26,6 +28,17 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
     spark = sqlContext.sparkSession
   }
 
+
+  private def getRowValue(r: Row, f: StructField) : Any = {
+
+    f.dataType match {
+      case IntegerType => r.getAs[Int](f.name)
+      case StringType => r.getAs[String](f.name)
+      case LongType => r.getAs[Long](f.name)
+      case ArrayType(DoubleType, true) => r.getAs[Array[Double]](f.name)
+      case _ => r.getAs[String](f.name)
+    }
+  }
 
 
   val exampleSchema = StructType(List(
@@ -55,26 +68,14 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
     StructField("StrArrayOfArrayLabel", ArrayType(ArrayType(StringType)))
   ))
 
-  private def createDataFrameForExampleTFRecord() : DataFrame = {
+  def createDataFrameForExampleTFRecord() : DataFrame = {
     val rdd = spark.sparkContext.parallelize(exampleTestRows)
     spark.createDataFrame(rdd, exampleSchema)
   }
 
-  private def createDataFrameForSequenceExampleTFRecords() : DataFrame = {
+  def createDataFrameForSequenceExampleTFRecords() : DataFrame = {
     val rdd = spark.sparkContext.parallelize(sequenceExampleTestRows)
     spark.createDataFrame(rdd, sequenceExampleSchema)
-  }
-
-
-  private def getRowValue(r: Row, f: StructField) : Any = {
-
-    f.dataType match {
-      case IntegerType => r.getAs[Int](f.name)
-      case StringType => r.getAs[String](f.name)
-      case LongType => r.getAs[Long](f.name)
-      case ArrayType(DoubleType, true) => r.getAs[Array[Double]](f.name)
-      case _ => r.getAs[String](f.name)
-    }
   }
 
   test("load tfrecords") {
@@ -170,7 +171,7 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
 
     val path = "target/sequenceExample.tfrecord"
 
-    val df: DataFrame = createDataFrameForSequenceExampleTFRecords()
+    val df: DataFrame = createDataFrameForSequenceExampleTFRecords(spark)
     df.write.mode(SaveMode.Overwrite).format("tfrecords").option("recordType", "SequenceExample").save(path)
 
     val importedDf: DataFrame = spark.read.format("tfrecords").option("recordType", "SequenceExample").schema(sequenceExampleSchema).load(path)
