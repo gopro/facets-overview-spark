@@ -1,7 +1,7 @@
 package features.stats.spark
 
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
 /**
   *
@@ -9,7 +9,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
   * Tensorflow/ecosystem/spark-tensorflow-connector
   */
 
-object TFRecordLoader {
+object TFRecordHelper {
 
    def loadTFRecords(spark:SparkSession,
                      path:String,
@@ -21,6 +21,16 @@ object TFRecordLoader {
      dfReader.load(path)
    }
 
+
+  def writerTFRecords(df: DataFrame,
+                    path:String,
+                    recordType:TFRecordType = TFRecordType.Example,
+                    saveMode: Option[SaveMode]  = None): Unit = {
+
+    val writer = saveMode.map(df.write.mode).getOrElse(df.write)
+    writer.format("tfrecords").option("recordType",recordType.name()).save(path)
+
+  }
 
 
 }

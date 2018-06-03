@@ -43,6 +43,7 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
       sc = SparkContext.getOrCreate(sparkConf)
       sqlContext = SqlContextFactory.getOrCreate(sc)
       spark = sqlContext.sparkSession
+      spark.sparkContext.setLogLevel("ERROR")
     }
 
   private[spark] def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean, file: File ):Unit = {
@@ -58,6 +59,19 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
     else {
       Files.write(Paths.get(file.getPath), proto.toByteArray)
     }
+  }
+
+
+  private[spark] def loadProto(base64Encode: Boolean, file: File ): DatasetFeatureStatisticsList = {
+    import java.util.Base64
+    val bs = Files.readAllBytes(Paths.get(file.getPath))
+    val bytes = if (base64Encode) Base64.getDecoder.decode(bs) else bs
+    DatasetFeatureStatisticsList.parseFrom(bytes)
+  }
+
+  private[spark] def toJson(proto: DatasetFeatureStatisticsList) : String = {
+    import scalapb.json4s.JsonFormat
+    JsonFormat.toJsonString(proto)
   }
 
 }

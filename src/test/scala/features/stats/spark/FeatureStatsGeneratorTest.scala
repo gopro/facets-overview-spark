@@ -3,12 +3,9 @@ package features.stats.spark
 import java.io.File
 import java.time.temporal.ChronoUnit
 
+import featureStatistics.feature_statistics.FeatureNameStatistics
 import featureStatistics.feature_statistics.Histogram.HistogramType.QUANTILES
-import featureStatistics.feature_statistics.{DatasetFeatureStatisticsList, FeatureNameStatistics}
 import org.apache.spark.sql.DataFrame
-
-
-
 /**
 # ==============================================================================
   *# Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,7 +40,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     val proto = generator.protoFromDataFrames(dataframes)
 
     assert(proto.datasets.length == 1)
-    val testData = proto.datasets(0)
+    val testData = proto.datasets.head
     assert("testDataSet" === testData.name)
     assert(3 === testData.numExamples)
     assert(2 === testData.features.length)
@@ -171,7 +168,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
                                       values = df,
                                       counts = countDF,
                                       missing = 0,
-                                      feat_lens = Some(featLensDF))
+                                      featLens = Some(featLensDF))
 
     var dataset:DataEntrySet = DataEntrySet(name ="testDataset",size=3, entries = Array(entry))
     val p = generator.genDatasetFeatureStats(List(dataset))
@@ -239,7 +236,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     val dataframes = List(NamedDataFrame(name = "testDataSet", df))
 //    # Getting proto from ProtoFromDataFrames instead of GetDatasetsProto
 //    # directly to avoid any hand written values ex: size of dataset.
-    val p = generator.protoFromDataFrames(dataframes, histgmCatLevelsCount=Some(2))
+    val p = generator.protoFromDataFrames(dataframes, catHistgmLevel=Some(2))
 
 
     assert(1 === p.datasets.size)
@@ -299,10 +296,6 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
       .load(filePath)
   }
 
-  private def toJson(proto: DatasetFeatureStatisticsList) : String = {
-    import scalapb.json4s.JsonFormat
-    JsonFormat.toJsonString(proto)
-  }
 
   def writeToFile(fileName:String, content:String): Unit = {
     import java.nio.charset.StandardCharsets

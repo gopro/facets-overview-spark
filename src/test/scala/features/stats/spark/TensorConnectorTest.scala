@@ -47,7 +47,7 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
     StructField("LongLabel", LongType),
     StructField("FloatLabel", FloatType),
     StructField("DoubleLabel", DoubleType),
-    StructField("DoubleArrayLabel", ArrayType(DoubleType, true)),
+    StructField("DoubleArrayLabel", ArrayType(DoubleType, containsNull = true)),
     StructField("StrLabel", StringType),
     StructField("BinaryLabel", BinaryType)))
 
@@ -60,7 +60,9 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
 
   val sequenceExampleTestRows: Array[Row] = Array(
     new GenericRow(Array[Any](23L, Seq(Seq(2.0F, 4.5F)), Seq(Seq("r1", "r2")))),
-    new GenericRow(Array[Any](24L, Seq(Seq(-1.0F, 0F)), Seq(Seq("r3")))))
+    new GenericRow(Array[Any](24L, Seq(Seq(-1.0F, 0F)), Seq(Seq("r3")))),
+    new GenericRow(Array[Any](25L, Seq(Seq(-3.0F, 0F)), Seq(Seq())))
+  )
 
   val sequenceExampleSchema = StructType(List(
     StructField("id",LongType),
@@ -90,7 +92,7 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
       StructField("LongTypeLabel", LongType),
       StructField("FloatTypeLabel", FloatType),
       StructField("DoubleTypeLabel", DoubleType),
-      StructField("VectorLabel", ArrayType(DoubleType, true)),
+      StructField("VectorLabel", ArrayType(DoubleType, containsNull =  true)),
       StructField("name", StringType)))
 
     val rdd = spark.sparkContext.parallelize(testRows)
@@ -171,11 +173,19 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
 
     val path = "target/sequenceExample.tfrecord"
 
-    val df: DataFrame = createDataFrameForSequenceExampleTFRecords(spark)
+    val df: DataFrame = createDataFrameForSequenceExampleTFRecords()
+//
+//    df.show()
+//    df.printSchema()
+
+
     df.write.mode(SaveMode.Overwrite).format("tfrecords").option("recordType", "SequenceExample").save(path)
 
     val importedDf: DataFrame = spark.read.format("tfrecords").option("recordType", "SequenceExample").schema(sequenceExampleSchema).load(path)
     val actualDf = importedDf.select("id", "FloatArrayOfArrayLabel", "StrArrayOfArrayLabel").sort("id")
+
+//    actualDf.show()
+//    actualDf.printSchema()
 
     val expectedRows = df.collect()
     val actualRows = actualDf.collect()
@@ -188,9 +198,9 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
 
     //Import Video-level Example dataset into DataFrame
     val videoSchema = StructType(List(StructField("video_id", StringType),
-      StructField("labels", ArrayType(IntegerType, true)),
-      StructField("mean_rgb", ArrayType(FloatType, true)),
-      StructField("mean_audio", ArrayType(FloatType, true))))
+      StructField("labels", ArrayType(IntegerType, containsNull =  true)),
+      StructField("mean_rgb", ArrayType(FloatType, containsNull =  true)),
+      StructField("mean_audio", ArrayType(FloatType,containsNull =   true))))
 
 
 
@@ -203,6 +213,8 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
                .option("recordType", "Example")
                .save("target/youtube-8m-video.tfrecord")
 
+
+
         val importedDf1: DataFrame = spark.read.format("tfrecords")
                                           .option("recordType", "Example")
                                           .schema(videoSchema)
@@ -211,9 +223,9 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
 
         //Import Frame-level SequenceExample dataset into DataFrame
         val frameSchema = StructType(List(StructField("video_id", StringType),
-          StructField("labels", ArrayType(IntegerType, true)),
-          StructField("rgb", ArrayType(ArrayType(StringType, true),true)),
-          StructField("audio", ArrayType(ArrayType(StringType, true),true))))
+          StructField("labels", ArrayType(IntegerType, containsNull =  true)),
+          StructField("rgb", ArrayType(ArrayType(StringType, containsNull =   true),containsNull =  true)),
+          StructField("audio", ArrayType(ArrayType(StringType, containsNull =  true),containsNull =  true))))
         val frameDf: DataFrame = spark.read.format("tfrecords")
                                       .schema(frameSchema)
                                       .option("recordType", "SequenceExample")
