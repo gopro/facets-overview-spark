@@ -4,10 +4,10 @@ import featureStatistics.feature_statistics.FeatureNameStatistics.{Type => Proto
 import featureStatistics.feature_statistics.StringStatistics.FreqAndValue
 import featureStatistics.feature_statistics.{Histogram => FSHistogram, _}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql._
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Column, DataFrame, Row}
 
 import scala.collection.mutable
 
@@ -27,71 +27,66 @@ import scala.collection.mutable
   *# ==============================================================================
  **
   *
-   * Class for generating the feature_statistics protobuf.
-   * The protobuf is used as input for the Overview visualization.
-   * This class follows the GOOGLE FACETS facet_overview python implementation logic
-   * The Spark DataFrame is used instead of using Python numpy and pandas
+  * Class for generating the feature statistics.
   *
-  * NOTE: Now this doesn't handle tf.sampels, tf.sequenceSamples.
+  * The feature statistics is used as input for the Overview visualization.
+  *
+  * This class initial implementation reference the GOOGLE FACETS facet_overview python
+  * (https://github.com/PAIR-code/facets/tree/master/facets_overview/python) implementation logic
+  *
+  * The Spark DataFrame is used instead of using Python numpy and pandas.
+  *
+  * The facet overview protobuf defines the following structure:
+  *
+  *  Dataset -- example training or test data sets, each dataset has DatasetFeatureStatistics which describes the dataset's statistics
+  *
+  *  DatasetFeatureStatistics -- contains lists of metadata (name of dataset, number of sample, and Seq[FeatureNameStatistics])
+  *
+  *  FeatureNameStatistics -- Each FeatureNameStatistics is feature stats for the given dataset,
+  *                           which includes feature name and data type and one of (NumericStatistics, StringStatistics or binary stats)
+  *
+  *   NumericStatistics Contains:
+  *     ** CommonStatistics -- (std_dev,mean, median,min, max, histogram)
+  *     ** WeightedNumericStatistics weighted_numeric_stats
+  *
+  *  StringStatistics Contains :
+  *     ** CommonStatistics common_stats = 1;
+          (unique values, FreqAndValue {value, frequency}, FreqAndValue top_values = 3,avg_length = 4, rank_histogram )
+        ** weighted_string_stats;
   *
   *
-  * Each dataset has DatasetFeatureStatistics which contains lists metadata (name of dataset, number of sample, and Seq[FeatureNameStatistics])
-  * Each FeatureNameStatistics is feature stats for the given dataset, which includes feature name and data type and one of (num_stats, string_stats or binary_stats)
-  * NumericStatistics
-  *     CommonStatistics
-  *     (std_dev,mean, median,min, max, histogram)
-  *     WeightedNumericStatistics weighted_numeric_stats
-  * StringStatistics
-  *  CommonStatistics common_stats = 1;
-       (unique values, FreqAndValue {value, frequency}, FreqAndValue top_values = 3,avg_length = 4
-       rank_histogram )
-       weighted_string_stats;
+  * Special Notes: For Tensorflow Data Structure TFRecords
+  * TFRecords Structure samples
+  * https://medium.com/mostly-ai/tensorflow-records-what-they-are-and-how-to-use-them-c46bc4bbb564
+  *
+  * If the data are from CSV, JSON etc format, we can convert the data to DataFrame (pandas or Spark), for Tensorflow
+  * TFRecords, Python implementation directly parse the TFRecord, we are using Tensorflow-spark-connector to parse it.
+  * The TFRecords are essentially TF Example or TF SequenceExample.
+  *  ** TF Example is set of features. each feature contains single value or list of values.
+  *
+  *  ** TF sequenceExample, the data consists context data and data. The data contains feature list.
+  *     each feature list can have multiple features and each feature can have one value or array of values.
+  *
+  *  ** Mapping to data frame, one SequenceExample can be one DataFrame.
+  *     one feature List is one column and the column value is Array of Array of values
+  *
+  * Feature Lists can be related, for example
+  *
+  * Movie Names    = [["The Shawshank Redemption"],["Fight Club"]]  --- Array of Array of movie names
+  * Movie Actors   = [["Tim Robbins","Morgan Freeman"], ["Brad Pitt","Edward Norton","Helena Bonham Carter"]] --array of array of actor names
+  * Movie Ratings  = [[9.0], [9.7]] --array of array of ratings
+  *
+  * the the first array of actors : ["Tim Robbins","Morgan Freeman"] are in first array of movies: ["The Shawshank Redemption"],["Fight Club"] with ratings [9.0]
+  * the the 2nd array of actors : ["Brad Pitt","Edward Norton","Helena Bonham Carter"] are in 2nd array of movies: ["Fight Club"] with ratings [9.7]
   *
   */
 
 
-case class NamedDataFrame(name:String, data: DataFrame)
-case class DataEntrySet(name: String, size: Long, entries : Array[DataEntry])
 
-/**
-  *
-  * @param featureName
-  * @param `type`
-  * @param values
-  * @param counts
-  * @param missing
-  * @param feat_lens -- Reserved for Tensorflow, not sure this should be DataFrame or Array,
-  *                     depending how do we integrate with tensorflow records
-  */
-case class DataEntry(featureName: String,
-                     `type` : ProtoDataType,
-                     values:DataFrame,
-                     counts: DataFrame,
-                     missing : Long,
-                     feat_lens: Option[DataFrame] = None
-                    )
-case class BasicNumStats(name: String,
-                         numCount: Long = 0L,
-                         numNan :Long = 0L,
-                         numZeros:Long = 0L,
-                         numPosinf:Long = 0,
-                         numNeginf: Long = 0,
-                         stddev : Double = 0.0,
-                         mean   : Double = 0.0,
-                         min    : Double = 0.0,
-                         median : Double = 0.0,
-                         max    : Double = 0.0,
-                         histogram: (Array[Double], Array[Long])
-                        )
-
-case class BasicStringStats(name: String,
-                            numCount: Long = 0,
-                            numNan :Long = 0L
-                        )
 
 object FeatureStatsGenerator {
 
-  case class NonZeroInfinite(isNan: Int, isZero: Int, isPosInfinite: Int, isNegInfinite: Int)
+  private[features] case class NonZeroInfinite(isNan: Int, isZero: Int, isPosInfinite: Int, isNegInfinite: Int)
 
   private[features]  def isFiniteFun(x : Any): Boolean = {
     val value = x.toString.toDouble //todo fix
@@ -154,9 +149,8 @@ object FeatureStatsGenerator {
     }
   }
   private[features]  def convertDateToLong: UserDefinedFunction = udf((value:Any) => convertDate2Long(value))
-
-  def  nonZeroOrEmpty: UserDefinedFunction= udf((value : Any) =>nonZeroOrEmptyValue(value))
-  val CheckZeroInfinite : UserDefinedFunction= udf((value : Double) =>checkZeroNanInfiniteFun(value))
+  private[features]  def nonZeroOrEmpty: UserDefinedFunction= udf((value : Any) =>nonZeroOrEmptyValue(value))
+  private[features]  val checkZeroInfinite : UserDefinedFunction= udf((value : Double) =>checkZeroNanInfiniteFun(value))
 
 }
 
@@ -171,143 +165,68 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     * @param dataFrames         A list of dicts describing tables for each dataset for the proto.
     *                           Each entry contains a 'table' field of the dataframe of the data and a 'name' field
     *                           to identify the dataset in the proto.
-    * @param histgmCatLevelsCount int, controls the maximum number of levels to display in histograms
+    * @param catHistgmLevel int, controls the maximum number of levels to display in histograms
     *                           for categorical features. Useful to prevent codes/IDs features
     *                           from bloating the stats object. Defaults to None.
     * @return The feature statistics proto for the provided tables.
     */
-  def protoFromDataFrames(dataFrames: List[NamedDataFrame],
-                          features : Set[String] = Set.empty[String],
-                          histgmCatLevelsCount:Option[Int]=None): DatasetFeatureStatisticsList = {
+  def protoFromDataFrames(dataFrames     : List[NamedDataFrame],
+                          features       : Set[String] = Set.empty[String],
+                          catHistgmLevel : Option[Int] = None): DatasetFeatureStatisticsList = {
 
-    val datasets: List[DataEntrySet] = toDataEntries( dataFrames)
-    genDatasetFeatureStats(datasets, features, histgmCatLevelsCount)
+    genDatasetFeatureStats(toDataEntries( dataFrames), features, catHistgmLevel)
 
-  }
-
-  /**
-    *
-    * @param colDF: single column DataFrame
-    * @return exploded single columnDataFrame
-    */
-  private def flattenOneColumn(colDF:DataFrame) : DataFrame = {
-
-    val spark = colDF.sqlContext.sparkSession
-    import org.apache.spark.sql.functions._
-    val field = colDF.schema.fields(0)
-
-    val df = field.dataType match {
-      case x: ArrayType =>
-        flattenOneColumn(colDF.select(explode(colDF(field.name)))
-                             .as(field.name + "_flatten"))
-      case _ => colDF
-    }
-
-    df
-  }
-
-  private def flatten(dataFrame: DataFrame) : DataFrame = {
-    val spark = dataFrame.sqlContext.sparkSession
-    import org.apache.spark.sql.functions._
-    var df = dataFrame
-    val size = df.schema.fields.length
-    (0 until size).foreach {index =>
-
-      var fieldNames :Seq[(String,Int)]= df.schema.fieldNames.zipWithIndex
-      val name = fieldNames.find(a => a._2 == index).get._1
-      val dt = df.schema.fields.find(f => f.name == name).head.dataType
-
-      df = dt match {
-        case x: ArrayType =>
-          val cols : Seq[Column]=  if (index == 0)
-              explode(df(name)).as(s"${name}_flatten")::fieldNames.tail.map(_._1).map(df(_)).toList
-          else if (index == size-1) {
-            fieldNames.take(index).map(_._1).map(df(_)).toList ++ List( explode(df(name)).as(s"${name}_flatten"))
-          }
-          else {
-            val restLen = size - (index+1)
-            val f1stPart =fieldNames.take(index).map(_._1).map(df(_)).toList
-            val f2ndPart=fieldNames.takeRight(restLen).map(_._1).map(df(_)).toList
-            f1stPart ++ (explode(df(name)).as(s"${name}_flatten")::f2ndPart)
-          }
-
-          df = df.select(cols:_*)
-          flatten(df)
-        case _ => df
-      }
-      df
-    }
-
-    df
- }
-
-
-
-  private[spark] def toRowCountDF(colDF: DataFrame) : DataFrame = {
-
-    import org.apache.spark.sql.functions._
-    val spark = colDF.sqlContext.sparkSession
-    import spark.implicits._
-    val field = colDF.schema.fields(0)
-
-    val df = field.dataType match {
-      case x: ArrayType =>
-        //fixme: this doesn't remove NaN, empty string and null values inside the array,
-        //      count is more than it should be
-        colDF.select(size(colDF(field.name)))
-
-      case x: BinaryType => colDF.map(_ => 1)
-      case x: StructType => colDF.map(_ => 1)
-      case x: MapType    => colDF.map(_ => 1) //not sure this is correct.
-      case _: NullType   => colDF.map(_ => 0)
-      case s:NumericType =>
-        val newDF = colDF.filter(!colDF(field.name).isNaN)
-        newDF.map(_ => 1)
-      case s:StringType =>
-        colDF.withColumn(field.name, when(length(colDF(field.name)) > 0, 1).otherwise(lit(0)))
-      case s:BooleanType =>
-        colDF.withColumn(field.name, when(colDF(field.name) === true, 1).otherwise(lit(0)))
-      //this shouldn't happen, the timestamp should already converted to numerical data
-      case s:TimestampType => colDF.map(_ => 1)
-
-      //this shouldn't happen, the timestamp should already converted to numerical data
-      case s:CalendarIntervalType => colDF.map(_ => 1)
-      case _ =>  colDF.map(_ => 1)
-
-    }
-
-    df.toDF(field.name)
   }
 
   private[features] def toDataEntries(dataFrames: List[NamedDataFrame]) : List[DataEntrySet] = {
 
-    println("convert to DataEntries")
+    import DataFrameUtils._
 
     val datasets: List[DataEntrySet] = dataFrames.map { ndf =>
       val df = ndf.data
-      val flattenDF = flatten(df)
-      val origSize = flattenDF.count()
+      val sp  = df.sqlContext.sparkSession
+      import org.apache.spark.sql.functions._
 
-      val dataEntries = flattenDF.schema.fields map { f =>
+      val dataEntries = df.schema.fields map { f =>
         val colName = f.name
-        val protoTypeName = convertDataType(f.dataType.typeName)
-        val convertedDF = convertToNumberDataFrame(df.select(f.name))
+        val origDataType = f.dataType
+
+        val columnDF = df.select(df(f.name))
+        val featureDF = if (isNestedArrayType(f)) flatten(columnDF, recursive = false) else columnDF
+        val flattenDF = flatten(featureDF)
+        val protoTypeName = convertDataType(flattenDF.schema.head.dataType.typeName)
+        val convertedDF = convertToNumberDataFrame(flattenDF.select(f.name))
         //Remove all null and nan values and count how many were removed.
         //also remove "NaN" strings
         val filteredFlattenedDF = convertedDF.na.drop().filter(!convertedDF(colName).isNaN)
-        val missingCount = origSize - filteredFlattenedDF.count()
 
-        val featureDF = df.select(f.name)
-        //get RowCount DataFrame
-        val rowCountDF = toRowCountDF(featureDF)
-        DataEntry(featureName=f.name,//todo:fixme,flatten column name maybe different from feature name
-                  `type` = protoTypeName,
-                  values = filteredFlattenedDF,
-                  counts = rowCountDF,
-                  missing = missingCount)
+        val (featLens, counts, missingCount) =
+          if (isNestedArrayType(f)) {
+            val sequenceLengthDF  = df.select(size(df(f.name)))
+            val valueLengthDF  :DataFrame   = featureDF.select(size(featureDF(f.name)))
+            //empty value list are considered missing
+            val missingCount      = valueLengthDF.filter(r=> r.getAs[Int](0) == 0)
+            (Some(sequenceLengthDF), valueLengthDF, missingCount.count())
+          }
+          else{
+            val origSize = flattenDF.count()
+            //get RowCount DataFrame
+            val rowCountDF = toRowCountDF(featureDF)
+            val missingCount = origSize - filteredFlattenedDF.count()
+            (None, rowCountDF, missingCount)
+          }
+
+        DataEntry(featureName=f.name,
+          `type` = protoTypeName,
+          values = convertedDF,
+          counts = counts,
+          missing = missingCount,
+          featLens = featLens
+        )
       }
 
       DataEntrySet(name = ndf.name, size = df.count, dataEntries)
+
     }
     datasets
   }
@@ -324,7 +243,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
                       feature statistics for. If set to Empty then all features in the dataset
                       are analyzed.Defaults to Empty.
     *
-    * @param histgmCatLevelsCount controls the maximum number of
+    * @param catHistgmLevel controls the maximum number of
     *                             levels to display in histograms for categorical features.
     *                             Useful to prevent codes/IDs features from bloating the stats object.
     *                             Defaults to None.
@@ -332,11 +251,10 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     *         The feature statistics proto for the provided datasets.
     */
 
-  private[features] def genDatasetFeatureStats(datasets : List[DataEntrySet],
-                                               features : Set[String] = Set.empty[String],
-                                               histgmCatLevelsCount: Option[Int] = None):DatasetFeatureStatisticsList = {
+  private[features] def genDatasetFeatureStats(datasets    : List[DataEntrySet],
+                                               features    : Set[String] = Set.empty[String],
+                                               catHistgmLevel : Option[Int] = None):DatasetFeatureStatisticsList = {
 
-    println("DataEntries to protobuf")
     val allDatasets = datasetProto
 
     val dfsList : List[DatasetFeatureStatistics]= datasets.zipWithIndex.map { a =>
@@ -352,22 +270,19 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
         val featureName:String   = entry.featureName
         if (featureType == ProtoDataType.INT || featureType == ProtoDataType.FLOAT) {
           FeatureNameStatistics(name = entry.featureName, `type` = featureType)
-            .withNumStats(getNumericStats(entry, ds.size,dsIndex))
+                              .withNumStats(getNumericStats(entry, ds.size,dsIndex))
         }
         else {
           FeatureNameStatistics(name = entry.featureName, `type` = featureType)
-            .withStringStats(getStringStats( entry, ds.size, dsIndex, histgmCatLevelsCount))
+                              .withStringStats(getStringStats( entry, ds.size, dsIndex, catHistgmLevel))
         }
       }
 
       DatasetFeatureStatistics(ds.name, numExamples = ds.size, features = feat)
     }
 
-    val xs = dfsList.foldLeft(allDatasets) { (z,dfs) =>
-       z.addDatasets(dfs)
-    }
+    dfsList.foldLeft(allDatasets){(z,dfs) => z.addDatasets(dfs)}
 
-    xs
   }
 
   private[features] def getCommonStats(dsSize: Long, entry: DataEntry, numNan: Long, dsIndex:Int) : CommonStatistics = {
@@ -379,9 +294,8 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
                                         buckets = countQuantileBuckets,
                                         `type` = FSHistogram.HistogramType.QUANTILES)
 
-
     val featureListLenHist :Option[FSHistogram]
-            = entry.feat_lens.map { featLens =>
+            = entry.featLens.map { featLens =>
               val flQuantileBuckets = populateQuantilesHistogramBucket(featLens,dsIndex)
               FSHistogram(numNan = numNan,
                           buckets = flQuantileBuckets,
@@ -408,29 +322,10 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     commStats
   }
 
-  private[features] def getBasicNumStats(valueDF: DataFrame, colName: String, dsIndex:Int) : BasicNumStats = {
-    println(s"getBasicNumStats for ${ colName}")
+  private[features] def getBasicNumStats(valueDF: DataFrame, colName: String,dsIndex:Int ) : BasicNumStats = {
 
     val spark = valueDF.sqlContext.sparkSession
-    import spark.implicits._
-
-    val filteredValueDF = valueDF.filter(r => isFiniteFun(r.getAs(0)))
-    valueDF.createOrReplaceTempView(s"`${colName}_view_$dsIndex`")
-
-    val sumDF = valueDF.mapPartitions { it =>
-      it.map { row =>
-        val a : NonZeroInfinite = checkZeroNanInfiniteFun(row.getAs[Double](0))
-        (colName, a.isZero, a.isPosInfinite, a.isNegInfinite, a.isNan, 1)
-      }
-    }.toDF(colName, "isZero", "isPosInfi", "isNegInfi", "isNan", "hasValue")
-      .groupBy(colName)
-      .sum()
-      .toDF(colName, "zeroCount", "posInfiCount", "negaInfiCount", "nanCount", "valueCount")
-
-    val countsDF = sumDF.select($"zeroCount", $"posInfiCount", $"negaInfiCount", $"nanCount", $"valueCount")
-    val indexedFields = countsDF.schema.fields.zipWithIndex
-    val extraCounts = countsDF.collect.flatMap(row => indexedFields.map(f => f._1.name -> row.getAs[Long](f._2))).toMap
-
+    val extraCounts: Map[String, Long] = getCounts(valueDF, colName,dsIndex)
     val valueCount : Long = extraCounts("valueCount")
     val numNan     : Long = extraCounts("nanCount")
     val numZeros   : Long = extraCounts("zeroCount")
@@ -440,38 +335,112 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     //          # Remove all non-finite (including NaN) value from the numeric
     //          # valueDF in order to calculate histogram buckets/counts. The
     //          # inf valueDF will be added back to the first and last buckets.
+    val filteredValueDF = valueDF.na.drop().filter(!valueDF(colName).isNaN)
+                                           .filter(r => isFiniteFun(r.getAs(0)))
 
-    val rdd : RDD[Double]= filteredValueDF.rdd.map{ a =>
-      a.get(0) match {
-        case x:Double => x
-        case x:Float => x.toDouble
-        case x:Long => x.toDouble
-        case x:Int => x.toDouble
-        case x:Short => x.toDouble
-      }
-    }
+    val rdd : RDD[Double]= convertToDoubleRDD(filteredValueDF)
 
-    val stddevVal = rdd.stdev()
-    val meanVal = rdd.mean()
-    val maxVal = rdd.max()
-    val minVal = rdd.min()
-    val medianVal = filteredValueDF.stat.approxQuantile(colName, Array(0.5), 10e-5).head
-
+    val stddevVal = getStddev(numNan, numPosinf, numNeginf, rdd)
+    val meanVal   = getMean(numNan, numPosinf, numNeginf, rdd)
+    val maxVal    = getMax(numNan, numPosinf, rdd)
+    val minVal    = getMinValue(numNan, numNeginf, rdd)
+    val medianVal = getMedian(spark,colName, numNan, numPosinf, numNeginf, filteredValueDF)
 
     val bucketCount = 10
+    val hist = if (rdd.isEmpty()) (Array[Double](), Array[Long]()) else rdd.histogram(bucketCount)
     val stats = BasicNumStats(colName, numCount = valueCount, numNan, numZeros, numNeginf,numPosinf,
                   stddev = stddevVal,
                   mean = meanVal,
                   min=  minVal,
                   median=medianVal,
                   max = maxVal,
-                  histogram =rdd.histogram(bucketCount)
+                  histogram = hist
                 )
 
     stats
 
   }
 
+  private def getCounts(valueDF: DataFrame, colName: String,dsIndex:Int) :Map[String, Long] = {
+
+    val spark = valueDF.sqlContext.sparkSession
+    import spark.implicits._
+
+    valueDF.createOrReplaceTempView(s"`${colName}_view_$dsIndex`")
+
+    val sumDF = valueDF.mapPartitions { it =>
+      it.map { row =>
+        val a: NonZeroInfinite = checkZeroNanInfiniteFun(row.getAs[Double](0))
+        (colName, a.isZero, a.isPosInfinite, a.isNegInfinite, a.isNan, 1)
+      }
+    }.toDF(colName, "isZero", "isPosInfi", "isNegInfi", "isNan", "hasValue")
+      .groupBy(colName)
+      .sum()
+      .toDF(colName, "zeroCount", "posInfiCount", "negaInfiCount", "nanCount", "valueCount")
+
+    val countsDF = sumDF.select($"zeroCount", $"posInfiCount", $"negaInfiCount", $"nanCount", $"valueCount")
+    val indexedFields = countsDF.schema.fields.zipWithIndex
+    countsDF.collect.flatMap(row => indexedFields.map(f => f._1.name -> row.getAs[Long](f._2))).toMap
+  }
+
+  private def getMedian(spark: SparkSession, colName: String, numNan: Long, numPosinf: Long, numNeginf: Long, filteredValueDF: DataFrame) = {
+
+    import spark.implicits._
+
+    if (numNan > 0)
+      Double.NaN
+    else {
+
+      val minNumbers = (1L to numNeginf).map(i => Double.MinValue + i * 0.1)
+      val maxNumbers = (1L to numPosinf).map(i => Double.MaxValue - i * 0.1)
+
+      val minDF = spark.sparkContext.parallelize(minNumbers).toDF(Array(colName): _*)
+      val maxDF = spark.sparkContext.parallelize(maxNumbers).toDF(Array(colName): _*)
+      val newDF = minDF.union(filteredValueDF).union(maxDF)
+      newDF.stat.approxQuantile(colName, Array(0.5), 10e-5).head
+    }
+  }
+
+  private def getStddev(numNan: Long, numPosinf: Long, numNeginf: Long, rdd: RDD[Double]) = {
+    if (numNan > 0 || numNeginf > 0 || numPosinf > 0) Double.NaN else rdd.stdev()
+  }
+
+  private def getMinValue(numNan: Long, numNeginf: Long, rdd: RDD[Double]) = {
+    if (numNan > 0) Double.NaN else {
+      if (numNeginf > 0) Double.NegativeInfinity else rdd.min()
+    }
+  }
+
+  private def getMax(numNan: Long, numPosinf: Long, rdd: RDD[Double]) = {
+    if (numNan > 0) Double.NaN else {
+      if (numPosinf > 0) Double.PositiveInfinity else rdd.max()
+    }
+  }
+
+  private def convertToDoubleRDD(filteredValueDF: Dataset[Row]) = {
+    filteredValueDF.rdd.map { a =>
+      a.get(0) match {
+        case x: Double => x
+        case x: Float => x.toDouble
+        case x: Long => x.toDouble
+        case x: Int => x.toDouble
+        case x: Short => x.toDouble
+      }
+    }
+  }
+
+  private def getMean(numNan: Long, numPosinf: Long, numNeginf: Long, rdd: RDD[Double]) = {
+    if (numNan > 0) Double.NaN else {
+      if (numNeginf > 0 && numPosinf > 0)
+        Double.NaN
+      else if (numNeginf > 0 && numPosinf == 0)
+        Double.NegativeInfinity
+      else if (numNeginf == 0 && numPosinf > 0)
+        Double.PositiveInfinity
+      else
+        rdd.mean()
+    }
+  }
 
   private[features] def getBasicStringStats(valueDF: DataFrame, colName: String) : BasicStringStats = {
 
@@ -499,7 +468,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
   }
 
   private[features] def updateStdHistogramBucket(colName: String,
-                                                 basicNumStats: BasicNumStats): Seq[FSHistogram.Bucket] = {
+                                                 basicNumStats: BasicNumStats): Seq[FSHistogram.Bucket] =  {
 
     import FSHistogram.Bucket
     val (startValues: Array[Double], counts: Array[Long]) = basicNumStats.histogram
@@ -530,8 +499,13 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
           }
         }
       else {
-        if (basicNumStats.numNeginf > 0)
-          Seq((Double.NegativeInfinity, Double.NegativeInfinity, basicNumStats.numNeginf))
+
+        if (basicNumStats.numNeginf > 0) {
+          if (basicNumStats.numPosinf == 0)
+            Seq((Double.NegativeInfinity, Double.NegativeInfinity, basicNumStats.numNeginf))
+          else
+            Seq((Double.NegativeInfinity, Double.PositiveInfinity, basicNumStats.numNeginf + basicNumStats.numPosinf))
+        }
         else if (basicNumStats.numPosinf > 0)
           Seq((Double.PositiveInfinity, Double.PositiveInfinity, basicNumStats.numPosinf))
         else
@@ -544,8 +518,6 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
   private[features] def getNumericStats(entry: DataEntry, dsSize:Long, dsIndex :Int) : NumericStatistics = {
 
-    println(s"get numeric stats for ${ entry.featureName}")
-
     val valueDF: DataFrame   = entry.values
     val featureName:String   = entry.featureName
     val countDF : DataFrame  = entry.counts
@@ -556,11 +528,17 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
                                   buckets = stdBuckets,
                                   `type` = FSHistogram.HistogramType.STANDARD)
 
-    val filteredValueDF = valueDF.filter(r => isFiniteFun(r.getAs(0)))
-    val qBuckets        = populateQuantilesHistogramBucket(filteredValueDF,dsIndex)
-    val qHist           = FSHistogram(numNan = basicStats.numNan,
-                                      buckets = qBuckets,
-                                     `type` = FSHistogram.HistogramType.QUANTILES)
+    //val filteredValueDF = valueDF.filter(r => isFiniteFun(r.getAs(0)))
+    val filteredValueDF = valueDF.na.drop().filter(!valueDF(featureName).isNaN)
+                                           .filter(r => isFiniteFun(r.getAs(0)))
+    val qBuckets =  if (filteredValueDF.rdd.isEmpty())
+                      Seq[FSHistogram.Bucket]()
+                    else
+                      populateQuantilesHistogramBucket(filteredValueDF, dsIndex)
+
+    val qHist       = FSHistogram(numNan = basicStats.numNan,
+                                  buckets = qBuckets,
+                                 `type` = FSHistogram.HistogramType.QUANTILES)
 
     val commonStats: CommonStatistics = getCommonStats(dsSize, entry, basicStats.numNan,dsIndex)
 
@@ -583,7 +561,6 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
                                        dsIndex:Int,
                                        histgmCatLevelsCount: Option[Int]) : StringStatistics = {
 
-    println(s"getStringStats for ${ entry.featureName}")
 
     val valueDF: DataFrame    = entry.values
     val featureName:String    = entry.featureName
@@ -605,7 +582,6 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     val ranksRdd = colDF.rdd.mapPartitions(it => it.map(r => (r.getAs[String](0),1L)))
                                                    .reduceByKey(_+_)
                                                    .sortBy(a =>  -1 * a._2)
-
     val ranks :Array[(String,Long)] = histgmCatLevelsCount.map(ranksRdd.take).getOrElse(ranksRdd.collect)
     val buckets = ranks.zipWithIndex.map { a =>
                     val ((cat, count), index) = a
@@ -658,9 +634,6 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     }
   }
 
-  val isFinite: UserDefinedFunction= udf((value : Double) =>isFiniteFun(value))
-
-
   /**
     * Convert to one column dataFrame to numerical data frame for statistical analysis
     * If the data frame is already in numerical format, simply return original DataFrame
@@ -672,11 +645,11 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     * @return DataFrame
     *
     */
-  private def convertToNumberDataFrame(columnDF: DataFrame): DataFrame = {
+  private[features] def convertToNumberDataFrame(columnDF: DataFrame): DataFrame = {
     val spark = columnDF.sqlContext.sparkSession
     val field = columnDF.schema.fields(0)
 
-    val df = field.dataType match {
+    field.dataType match {
       case s:NumericType => columnDF
       case s:TimestampType => columnDF.select(convertDateToLong(columnDF(field.name))).toDF(field.name)
       case s:DateType =>
@@ -686,9 +659,30 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
         columnDF
     }
 
-    //df.show(2)
-    df
+  }
 
+  private[features] def toRowCountDF(colDF: DataFrame) : DataFrame = {
+
+    import org.apache.spark.sql.functions._
+    val spark = colDF.sqlContext.sparkSession
+    import spark.implicits._
+    val field = colDF.schema.fields.head
+
+    val df = field.dataType match {
+      case x: ArrayType =>
+        //note: this doesn't remove NaN, empty string and null values inside the array,
+        colDF.select(size(colDF(field.name)))
+      case _: NullType   => colDF.map(_ => 0)
+      case s:NumericType =>
+        colDF.filter(!colDF(field.name).isNaN).map(_ => 1)
+      case s:StringType =>
+        colDF.withColumn(field.name, when(length(colDF(field.name)) > 0, 1).otherwise(lit(0)))
+      case s:BooleanType =>
+        colDF.withColumn(field.name, when(colDF(field.name) === true, 1).otherwise(lit(0)))
+      case _ =>  colDF.map(_ => 1)
+    }
+
+    df.toDF(field.name)
   }
 
 }
