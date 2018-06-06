@@ -192,8 +192,8 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
         val origDataType = f.dataType
 
         val columnDF = df.select(df(f.name))
-        val featureDF = if (isNestedArrayType(f)) flatten(columnDF, recursive = false) else columnDF
-        val flattenDF = flatten(featureDF)
+        val featureDF = if (isNestedArrayType(f)) flattenDataFrame(columnDF, recursive = false) else columnDF
+        val flattenDF = flattenDataFrame(featureDF)
         val protoTypeName = convertDataType(flattenDF.schema.head.dataType.typeName)
         val convertedDF = convertToNumberDataFrame(flattenDF.select(f.name))
         //Remove all null and nan values and count how many were removed.
