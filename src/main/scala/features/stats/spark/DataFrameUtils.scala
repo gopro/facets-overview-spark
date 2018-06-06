@@ -1,7 +1,10 @@
 package features.stats.spark
 
-import org.apache.spark.sql.types.{ArrayType, StructField}
-import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.{Column, DataFrame, functions}
+
+import scala.collection.mutable.{Set => MSet}
 
 /**
   * Created by chesterchen on 6/2/18.
@@ -17,48 +20,56 @@ object DataFrameUtils {
   }
 
 
+
   /**
-    * cartentian product type of flatten. All array data are exploded against all other columns
+    * Flatten the names of all attributes of nested structures into one "flat" structure where the name of the
+    * attribute is the concatenation of all names of the parent structures down to the actual name of the attribute
+    * being flattened with periods being inserted between the names.
     *
-    * @param dataFrame -- input dataframe
-    * @param recursive -- true for recursive flatten, that is array of array will be exploded as well.
-    * @return
+    * @param schema a StructType describing the schema or structure of a data frame
+    * @param prefix a prefix to prepend to all flattened column names
+    *
+    * @return an array of columns with flattened names
     */
-  private[spark] def flatten(dataFrame: DataFrame, recursive: Boolean = true) : DataFrame = {
-    val spark = dataFrame.sqlContext.sparkSession
-    import org.apache.spark.sql.functions._
-    var df = dataFrame
-    val size = df.schema.fields.length
-    (0 until size).foreach {index =>
+  private[spark] def flattenSchemaNames(schema: StructType, prefix: String = null): Array[Column] = {
+    schema.fields.flatMap(f => {
+      val colName = if (prefix == null) f.name else s"$prefix.${f.name}"
 
-      var fieldNames :Seq[(String,Int)]= df.schema.fieldNames.zipWithIndex
-      val name = fieldNames.find(a => a._2 == index).get._1
-      val dt = df.schema.fields.find(f => f.name == name).head.dataType
-
-      df = dt match {
-        case x: ArrayType =>
-          val cols : Seq[Column]=
-            if (index == 0)
-              explode(df(name)).as(name)::fieldNames.tail.map(_._1).map(df(_)).toList
-            else if (index == size-1) {
-              fieldNames.take(index).map(_._1).map(df(_)).toList ++ List( explode(df(name)).as(name))
-            }
-            else {
-              val restLen = size - (index+1)
-              val f1stPart =fieldNames.take(index).map(_._1).map(df(_)).toList
-              val f2ndPart=fieldNames.takeRight(restLen).map(_._1).map(df(_)).toList
-              f1stPart ++ (explode(df(name)).as(name)::f2ndPart)
-            }
-
-          df = df.select(cols:_*)
-          if (recursive) flatten(df) else df
-        case _ => df
+      f.dataType match {
+        case st: StructType => flattenSchemaNames(st, colName)
+        case _ => Array(col(colName))
       }
-      df
-    }
-
-    df
+    })
   }
 
 
+  /**
+    * Flatten the nested Spark data frame into one "flat" structure.
+    * Also, explode the arrayType columns into multiple rows.
+    *
+    * @return
+    */
+  def flattenDataFrame(df: DataFrame, recursive: Boolean = true): DataFrame = {
+    var flattenedDf = df.select(flattenSchemaNames(df.schema)
+                        .map(col => col.alias(sanitizedName(col))): _*)
+
+    flattenedDf.schema.fields.foreach(x => {
+      x.dataType match {
+        case st: ArrayType =>
+            // only explode the array when it is not empty otherwise it will lose the entry
+            val explodedCol = functions.explode(when(size(col(x.name)) =!= 0, col(x.name))
+                                                 .otherwise(array(lit(null).cast(st.elementType))))
+
+            val df = flattenedDf.withColumn(x.name, explodedCol)
+            flattenedDf = if(recursive) flattenDataFrame(df, recursive) else df
+
+        case _ => //ignore
+      }
+    })
+    flattenedDf
+  }
+
+  private def sanitizedName(col: Column) = {
+    col.toString().replace(".", "_").replace("-", "_").replace("__", "_").replaceFirst("^_", "").toLowerCase
+  }
 }
