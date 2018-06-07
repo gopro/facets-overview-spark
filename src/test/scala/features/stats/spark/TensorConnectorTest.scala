@@ -131,9 +131,9 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
       val imported = importedDf2.schema.find(f2 => f2 == f)
       assert(imported.isDefined)
       assert(imported.get === f)
-      val xs = df.select(f.name).collect().map(r => getRowValue(r, f))
-      val ys = importedDf2.select(f.name).collect().map(r => getRowValue(r, f))
-      assert(xs.sorted === ys.sorted)
+      val xs = df.select(f.name).collect().map(r => getRowValue(r, f).toString)
+      val ys = importedDf2.select(f.name).collect().map(r => getRowValue(r, f).toString)
+      assert(xs.sortWith( _ < _)  === ys.sortWith( _ < _))
     }
 
 
@@ -160,8 +160,8 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
       val imported = importedDf2.schema.find(f2 => f2 == f)
       assert(imported.isDefined)
       assert(imported.get === f)
-      val xs = df.select(f.name).collect().map(r => getRowValue(r, f))
-      val ys = importedDf2.select(f.name).collect().map(r => getRowValue(r, f))
+      val xs = df.select(f.name).collect().map(r => getRowValue(r, f).toString)
+      val ys = importedDf2.select(f.name).collect().map(r => getRowValue(r, f).toString)
       assert(xs.sorted === ys.sorted)
 
     }
