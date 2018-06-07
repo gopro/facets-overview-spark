@@ -1,17 +1,11 @@
 package features.stats.spark
 
 import java.io.File
-import java.nio.file.{Files, Paths}
 import java.time.temporal.ChronoUnit
 
+import featureStatistics.feature_statistics.FeatureNameStatistics
 import featureStatistics.feature_statistics.Histogram.HistogramType.QUANTILES
-import featureStatistics.feature_statistics.{DatasetFeatureStatisticsList, FeatureNameStatistics}
-import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
-import org.apache.spark.{SparkConf, SparkContext}
-import org.scalatest.{BeforeAndAfterAll, FunSuite}
-
-
-
+import org.apache.spark.sql.DataFrame
 /**
 # ==============================================================================
   *# Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,38 +22,8 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
   *# ==============================================================================
   */
 
-class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
+class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
-  val appName = "protoGenerator"
-  val SPARK_MASTER_URL = "local[2]"
-  var sc: SparkContext = _
-  var sqlContext: SQLContext = _
-  val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
-  var spark: SparkSession = _
-
-  override protected def beforeAll(): Unit = {
-    val sparkConf = new SparkConf().setMaster(SPARK_MASTER_URL).setAppName(appName)
-    //sparkConf.set("spark.sql.session.timeZone", "GMT")
-
-    sc = SparkContext.getOrCreate(sparkConf)
-    sqlContext = SqlContextFactory.getOrCreate(sc)
-    spark = sqlContext.sparkSession
-  }
-
-  private def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean, file: File ):Unit = {
-    if (base64Encode) {
-      import java.util.Base64
-      val b = Base64.getEncoder.encode(proto.toByteArray)
-      import java.nio.charset.Charset
-      import java.nio.file.{Files, Paths}
-      val  UTF8_CHARSET = Charset.forName("UTF-8")
-
-      Files.write(Paths.get(file.getPath), new String(b, UTF8_CHARSET).getBytes())
-    }
-    else {
-      Files.write(Paths.get(file.getPath), proto.toByteArray)
-    }
-  }
 
   test("generateProtoFromDataFrame") {
 
@@ -76,7 +40,7 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
     val proto = generator.protoFromDataFrames(dataframes)
 
     assert(proto.datasets.length == 1)
-    val testData = proto.datasets(0)
+    val testData = proto.datasets.head
     assert("testDataSet" === testData.name)
     assert(3 === testData.numExamples)
     assert(2 === testData.features.length)
@@ -143,9 +107,6 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
     val ts1 = LocalDateTime.of(2005, 2, 25, 0, 0).toInstant(ZoneOffset.UTC).getEpochSecond
     val ts2 = LocalDateTime.of(2006, 2, 25, 0, 0).toInstant(ZoneOffset.UTC).getEpochSecond
 
-    println("ts1 =" + ts1)
-    println("ts2 =" + ts2)
-
     val spark = sqlContext.sparkSession
     import org.apache.spark.sql.functions._
     import spark.implicits._
@@ -207,7 +168,7 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
                                       values = df,
                                       counts = countDF,
                                       missing = 0,
-                                      feat_lens = Some(featLensDF))
+                                      featLens = Some(featLensDF))
 
     var dataset:DataEntrySet = DataEntrySet(name ="testDataset",size=3, entries = Array(entry))
     val p = generator.genDatasetFeatureStats(List(dataset))
@@ -275,7 +236,7 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
     val dataframes = List(NamedDataFrame(name = "testDataSet", df))
 //    # Getting proto from ProtoFromDataFrames instead of GetDatasetsProto
 //    # directly to avoid any hand written values ex: size of dataset.
-    val p = generator.protoFromDataFrames(dataframes, histgmCatLevelsCount=Some(2))
+    val p = generator.protoFromDataFrames(dataframes, catHistgmLevel=Some(2))
 
 
     assert(1 === p.datasets.size)
@@ -335,10 +296,6 @@ class FeatureStatsGeneratorTest extends FunSuite with BeforeAndAfterAll{
       .load(filePath)
   }
 
-  private def toJson(proto: DatasetFeatureStatisticsList) : String = {
-    import scalapb.json4s.JsonFormat
-    JsonFormat.toJsonString(proto)
-  }
 
   def writeToFile(fileName:String, content:String): Unit = {
     import java.nio.charset.StandardCharsets
