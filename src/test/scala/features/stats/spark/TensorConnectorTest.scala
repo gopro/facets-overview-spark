@@ -133,7 +133,7 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
       assert(imported.get === f)
       val xs = df.select(f.name).collect().map(r => getRowValue(r, f))
       val ys = importedDf2.select(f.name).collect().map(r => getRowValue(r, f))
-      assert(xs === ys)
+      assert(xs.sorted === ys.sorted)
     }
 
 
@@ -162,7 +162,7 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
       assert(imported.get === f)
       val xs = df.select(f.name).collect().map(r => getRowValue(r, f))
       val ys = importedDf2.select(f.name).collect().map(r => getRowValue(r, f))
-      assert(xs === ys)
+      assert(xs.sorted === ys.sorted)
 
     }
 
