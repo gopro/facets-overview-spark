@@ -57,7 +57,7 @@ object DataFrameUtils {
       x.dataType match {
         case st: ArrayType =>
             // only explode the array when it is not empty otherwise it will lose the entry
-            val explodedCol = functions.explode(when(size(col(x.name)) =!= 0, col(x.name))
+            val explodedCol = functions.explode(when(size(col(x.name)) > 0, col(x.name))
                                                  .otherwise(array(lit(null).cast(st.elementType))))
 
             val df = flattenedDf.withColumn(x.name, explodedCol)

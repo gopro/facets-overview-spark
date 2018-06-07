@@ -4,8 +4,8 @@ import java.io.File
 import java.nio.file.{Files, Paths}
 
 import featureStatistics.feature_statistics.DatasetFeatureStatisticsList
-import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.{SQLContext, SparkSession}
+import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 /**
@@ -50,11 +50,10 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
     if (base64Encode) {
       import java.util.Base64
       val b = Base64.getEncoder.encode(proto.toByteArray)
-      import java.nio.charset.Charset
+      import java.nio.charset.StandardCharsets.UTF_8
       import java.nio.file.{Files, Paths}
-      val  UTF8_CHARSET = Charset.forName("UTF-8")
 
-      Files.write(Paths.get(file.getPath), new String(b, UTF8_CHARSET).getBytes())
+      Files.write(Paths.get(file.getPath), new String(b, UTF_8).getBytes(UTF_8))
     }
     else {
       Files.write(Paths.get(file.getPath), proto.toByteArray)

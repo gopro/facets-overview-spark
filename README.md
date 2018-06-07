@@ -49,9 +49,9 @@ We can use Spark to leverage the spark generate stats with distributed computini
 * The python implementation is in loop-mutable and update fasion, we need re-arrange it to use  immutable container and collection fasion 
 Numpy Implementation consider all the data is in Array on the current computer, we need some way to transform data without collect the data into an array
 Need to find equivalent Numpy functions such as avg, mean, stddev, histogram
-* The "overview" implementation can be apply to Tensorflow Record (tf.sampels, tf.sequenceSamples), where the data value clould be array or array of array of nested structure. 
-In this Scala + Spark Implementation, we will not support tensorflow record for this implemenation
-But we do allow the data value to be nested array. 
+* The "overview" implementation can be apply to Tensorflow Record (tf.sampels, tf.sequenceSamples), where the data value could be array or array of array of data. 
+In this Scala + Spark Implementation, tensorflow record support is leveraging tensorflow/ecosystem/spark-tensorflow-connector, 
+where we can load the TFRecords into spark data frame. Then the rest of the implmentation is no difference. 
 * We use DataFrame to represent the Feature. this is equivalent the feature array used in the Numpy. 
 Efficiency is not the major concern in this first version of design, we may have to pass data in multiple passes. 
 
@@ -66,7 +66,6 @@ Based on Feature_statistics Protobuf definitions,
 * StringStatistics consists CommonStatistics  as well as (unique values, {value, frequency}, top_values,avg_length, rank_histogram )
 
 Google's Python implementation mainly use dictionary to hold data structures. In this implemenation, we define several additional data structures to help organize the data. 
-
 
 
 * Each dataset can be presented by the NamedDataFrame
