@@ -1,8 +1,22 @@
+// Copyright © 2018 GoPro, Inc. All Rights Reserved
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+//
+
+
 # Facets Overview Spark
- 
-* this code is intended to be give back to open-source community, therefore this is only temporary put here for testing
- 
- 
+
 Google Open Sourced the Facets Project in 2017 (https://github.com/PAIR-code/facets), which can help Data Scientists to better understand the data set 
 and under the slogan that "Better data leads to better models".
 
@@ -124,20 +138,54 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
 ## FeatureStatsGenerator
 
-## Usage Smaple
-
+### Build
+```
+    mvn clean install
 ```
 
- 
+### test
+```
+    mvn test
+```
 
-  test("integration") {
+## Usage Smaples
+
+   ## Generate Protobuf from DataFrame (using CSV)
+
+   In this example, load the CSV file (adult.data.csv, adult.test.csv) into Spark DataFrame
+   then pass the DataFrame to FeatureStatsGeneator to generate the protobuf class.
+
+   The file can then be persisted into a binary protobuf file, or based64 encoded binary protobuf file.
+
+   Few utility functions for loading from CSV and persist to file are provided
+
+   As you can see, once the DataFrame is created, the rest of the code is the same.
+
+   The examples can easily used for DataFrames from JSON, SQL, Tensorflow Records etc.
+
+   For instances, I can simply change the functions to
+
+   ```
+    val trainData: DataFrame = loadJSONFile("path/to/data/jsonfile")
+    val testData : DataFrame  = loadJSONFile("path/to/test/jsonfile")
+
+    val trainData: DataFrame = sqlContext.sql("select * from DataTable")
+    val testData : DataFrame = sqlContext.sql("select * from TestTable")
+
+   ```
+
+   Here is the example:
+
+
+
+```
   
     val features = Array("Age", "Workclass", "fnlwgt", "Education", "Education-Num", "Marital Status",
                          "Occupation", "Relationship", "Race", "Sex", "Capital Gain", "Capital Loss",
                          "Hours per week", "Country", "Target")
 
     val trainData: DataFrame = loadCSVFile("src/test/resources/data/adult.data.csv")
-    val testData = loadCSVFile("src/test/resources/data/adult.test.txt")
+    val testData : DataFrame = loadCSVFile("src/test/resources/data/adult.test.txt")
 
     val train = trainData.toDF(features: _*)
     val test = testData.toDF(features: _*)
@@ -163,11 +211,6 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
       .load(filePath)
   }
 
-  private def toJson(proto: DatasetFeatureStatisticsList) : String = {
-    import scalapb.json4s.JsonFormat
-    JsonFormat.toJsonString(proto)
-  }
-  
   
   private def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false, file: File ) = {
     if (base64Encode) {
@@ -185,4 +228,67 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
   }
 
 ```
+
+### Generating stats for SequenceExample data
+
+    In this example, we generate feature stats for the DataFrame
+    that is the same as TFRecord SequenceExample
+
+    The protobuf is then print to Json for easy to read.
+```
+     val data = Seq((Seq(Seq("Tim Robbins","Morgan Freeman"), Seq("Brad Pitt","Edward Norton","Helena Bonham Carter")),
+                        Seq(Seq("The Shawshank Redemption"),Seq("Fight Club")),
+                        Seq(Seq(9.0), Seq(9.7)),
+                        19L,
+                        List("Majesty Rose", "Savannah Outen", "One Direction"),
+                        "pt_BR"
+                      ))
+        val featureNames = Seq("Movie Actors" ,"Movie Names",  "Movie Ratings","Age" ,"Favorites",  "Locale")
+        val dataDF = spark.createDataFrame(data).toDF(featureNames:_*)
+
+
+        dataDF.printSchema()
+        dataDF.show()
+        //generate datastats
+        val dataframes = List(NamedDataFrame(name = "data", dataDF))
+        val p = generator.protoFromDataFrames(dataframes)
+
+        println("json=" + toJson(p))
+
+
+  private def toJson(proto: DatasetFeatureStatisticsList) : String = {
+    import scalapb.json4s.JsonFormat
+    JsonFormat.toJsonString(proto)
+  }
+
+```
+
+### Generate Stats for TFRecords
+
+```
+ val spark = sqlContext.sparkSession
+
+ val schema = StructType(List(StructField("id", IntegerType),
+              StructField("IntegerTypeLabel", IntegerType),
+              StructField("LongTypeLabel", LongType),
+              StructField("FloatTypeLabel", FloatType),
+              StructField("DoubleTypeLabel", DoubleType),
+              StructField("VectorLabel", ArrayType(DoubleType, containsNull =  true)),
+              StructField("name", StringType)))
+
+
+ val df =  TFRecordHelper.loadTFRecords(spark, path,  TFRecordType.Example, Some(schema))
+
+ val p  = generator.protoFromDataFrames(dataframes)
+
+ println("json=" + toJson(p))
+
+```
+
+ The TFRecordHelper is small utility class which allow your to use leverage enumerated TFRecordType
+ and pass-in optional schema
+
+```
+
+
 

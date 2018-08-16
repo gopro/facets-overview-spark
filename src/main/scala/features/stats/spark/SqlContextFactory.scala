@@ -1,3 +1,18 @@
+// Copyright © 2018 GoPro, Inc. All Rights Reserved
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ==============================================================================
+
 package features.stats.spark
 
 import com.typesafe.config.Config
@@ -5,21 +20,7 @@ import config.ConfigUtil
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{SQLContext, SparkSession}
 
-/**
-# ==============================================================================
-  *# Licensed under the Apache License, Version 2.0 (the "License");
-  *# you may not use this file except in compliance with the License.
-  *# You may obtain a copy of the License at
-  *#
-  *#     http://www.apache.org/licenses/LICENSE-2.0
-  *#
-  *# Unless required by applicable law or agreed to in writing, software
-  *# distributed under the License is distributed on an "AS IS" BASIS,
-  *# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  *# See the License for the specific language governing permissions and
-  *# limitations under the License.
-  *# ==============================================================================
-  */
+
 object SqlContextFactory {
 
   private val INSTANTIATION_LOCK = new Object()
@@ -68,11 +69,8 @@ object SqlContextFactory {
     // Note this can not be achieved by setting it on the hadoop configuration
     // within the spark context.
     sqlContext.setConf("hadoop.shell.missing.defaultFs.warning", "false")
-    config.foreach(x => {
-      ConfigUtil.toMap(x).foreach(
-        kv => {
-          sqlContext.setConf(kv._1, kv._2)
-        })
-    })
+    config.foreach(x =>
+      ConfigUtil.toMap(x).foreach(kv => sqlContext.setConf(kv._1, kv._2))
+    )
   }
 }
