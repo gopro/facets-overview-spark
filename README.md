@@ -129,6 +129,12 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     mvn test
 ```
 
+### License
+```
+    Apache License 2.0
+```
+
+
 ## Usage Smaples
 
    ### Generate Protobuf from DataFrame (using CSV)
