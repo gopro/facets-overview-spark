@@ -43,15 +43,14 @@ We can use Spark to leverage the spark generate stats with distributed computini
 
 
 ## Design Considerations
-* Need to find a Scala Protobuf generator
-* The python implementation is in loop-mutable and update fasion, we need re-arrange it to use  immutable container and collection fasion 
-Numpy Implementation consider all the data is in Array on the current computer, we need some way to transform data without collect the data into an array
-Need to find equivalent Numpy functions such as avg, mean, stddev, histogram
+* We need to find a Scala Protobuf generator
+* The python implementation is in loop-mutable and update fasion, we need re-arrange it to use immutable collection
+* Numpy Implementation load all the data is in Array on the current computer, we need some way to transform data without load all data into memory.
+* We also need to find equivalent Numpy functions such as avg, mean, stddev, histogram
 * The "overview" implementation can be apply to Tensorflow Record (tf.sampels, tf.sequenceSamples), where the data value could be array or array of array of data. 
-In this Scala + Spark Implementation, tensorflow record support is leveraging tensorflow/ecosystem/spark-tensorflow-connector, 
-where we can load the TFRecords into spark data frame. Then the rest of the implmentation is no difference. 
+* In this implementation, we can leveraging tensorflow/ecosystem/spark-tensorflow-connector for tensorflow record support, where we can load the TFRecords into spark DataFrame. Once the DataFrame is created, rest of implementation is almost same.
 * We use DataFrame to represent the Feature. this is equivalent the feature array used in the Numpy. 
-Efficiency is not the major concern in this first version of design, we may have to pass data in multiple passes. 
+* Efficiency is not the major concern in this first version of design, we may have to pass data in multiple passes.
 
 
 ## Data Structures
@@ -65,11 +64,9 @@ Based on Feature_statistics Protobuf definitions,
 
 Google's Python implementation mainly use dictionary to hold data structures. In this implemenation, we define several additional data structures to help organize the data. 
 
-
 * Each dataset can be presented by the NamedDataFrame
 * Each dataset can be split with different features, so that it can also be converted to DataEntrySet
-* Each DataEntry represents one feature with basic information as well the DataFrame for the feature. 
-Special note: feat_lens is used for tensorflow records
+* Each DataEntry represents one feature with basic information as well the DataFrame for the feature.
 * Each Feature associate with FeatureNameStatistics defined above, we use BasicNumStats and BasicStringStats to capture the basic statistics
 
 ```
