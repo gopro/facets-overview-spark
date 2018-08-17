@@ -1,19 +1,3 @@
-// Copyright © 2018 GoPro, Inc. All Rights Reserved
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-// ==============================================================================
-//
-
 
 # Facets Overview Spark
 
@@ -143,14 +127,14 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     mvn clean install
 ```
 
-### test
+### Test
 ```
     mvn test
 ```
 
 ## Usage Smaples
 
-   ## Generate Protobuf from DataFrame (using CSV)
+   ### Generate Protobuf from DataFrame (using CSV)
 
    In this example, load the CSV file (adult.data.csv, adult.test.csv) into Spark DataFrame
    then pass the DataFrame to FeatureStatsGeneator to generate the protobuf class.
@@ -176,16 +160,22 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
    Here is the example:
 
-
+   First load CSV files (data and test) into DataFrames
 
 ```
-  
     val features = Array("Age", "Workclass", "fnlwgt", "Education", "Education-Num", "Marital Status",
                          "Occupation", "Relationship", "Race", "Sex", "Capital Gain", "Capital Loss",
                          "Hours per week", "Country", "Target")
 
     val trainData: DataFrame = loadCSVFile("src/test/resources/data/adult.data.csv")
     val testData : DataFrame = loadCSVFile("src/test/resources/data/adult.test.txt")
+```
+    Next Associate the column names ("schema") to the loaded DataFrame, then created a
+    list of "Named DataFrame"
+
+```
+    val spark = sqlContext.sparkSession
+    import spark.implicits._
 
     val train = trainData.toDF(features: _*)
     val test = testData.toDF(features: _*)
@@ -193,13 +183,26 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     val dataframes = List(NamedDataFrame(name = "train", train), 
                           NamedDataFrame(name = "test", test))
 
+```
+   Next, we create FeatureStatsGenerator, and passed the namedDataFrame list to the generator,
+   then call ```protoFromDataFrames(dataframes)``` to generate the stats.
 
+```
     val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
-    
     val proto = generator.protoFromDataFrames(dataframes)
+```
+    Once we have the feature stats probuf, we can save it to file, which can be loaded into web
+    or jupyter notebook.
+
+
+```
     persistProto(proto,base64Encode = false, new File("src/test/resources/data/stats.pb"))
     persistProto(proto,base64Encode = true, new File("src/test/resources/data/stats.txt"))
-  }
+```
+
+   Here are some utility functions
+
+```
   
   private def loadCSVFile(filePath: String) : DataFrame = {
     val spark = sqlContext.sparkSession
@@ -288,7 +291,6 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
  The TFRecordHelper is small utility class which allow your to use leverage enumerated TFRecordType
  and pass-in optional schema
 
-```
 
 
 
