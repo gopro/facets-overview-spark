@@ -134,6 +134,11 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     Apache License 2.0
 ```
 
+//todo: add maven depedency usage
+//todo : add code to package to update to maven repository
+//todo: add code to show how to use jupyter notebook
+//todo: add code to show how to use it in Javascripts
+
 
 ## Usage Smaples
 
