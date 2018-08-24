@@ -311,10 +311,10 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
 
 
-## How to use the generated feature statistics in Jupyter notebook
+## How to use the generated feature statistics in Jupyter notebook (python)
 
 * todo: add code to show how to use jupyter notebook
 
-## How to use the generated feature statistics in Javascripts web browser
+## How to use the generated feature statistics in browser (javascripts)
 *  todo: add code to show how to use it in Javascripts
 
