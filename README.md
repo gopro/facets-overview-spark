@@ -1,6 +1,18 @@
 
 # Facets Overview Spark
 
+
+## What is "Facets Overview Spark"
+
+Facets Overview Spark is Spark implementation of Google Facet Overview  https://github.com/PAIR-code/facets
+The project is open sourced by GoPro Data Science Engineering team.
+
+The implementation is in Scala and Spark. The generated protobuf files can be directly used by Javascripts
+or Juypiter notebook
+
+
+## Introduction
+
 Google Open Sourced the Facets Project in 2017 (https://github.com/PAIR-code/facets), which can help Data Scientists to better understand the data set 
 and under the slogan that "Better data leads to better models".
 
@@ -301,4 +313,11 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
 
 
+
+## How to use the generated feature statistics in Jupyter notebook
+
+* todo: add code to show how to use jupyter notebook
+
+## How to use the generated feature statistics in Javascripts web browser
+*  todo: add code to show how to use it in Javascripts
 
