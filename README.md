@@ -4,11 +4,9 @@
 
 ## What is "Facets Overview Spark"
 
-Facets Overview Spark is Spark implementation of Google Facet Overview  https://github.com/PAIR-code/facets
-The project is open sourced by GoPro Data Science Engineering team.
+Facets Overview Spark is an implementation of Google Facet Overview (https://github.com/PAIR-code/facets) using Spark and Scala.
 
-The implementation is in Scala and Spark. The generated protobuf files can be directly used by Javascripts
-or Juypiter notebook
+The project is open sourced by GoPro Data Science Engineering team.
 
 
 ## Introduction
