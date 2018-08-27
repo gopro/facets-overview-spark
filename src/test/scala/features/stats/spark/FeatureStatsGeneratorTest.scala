@@ -16,7 +16,6 @@
 
 package features.stats.spark
 
-import java.io.File
 import java.time.temporal.ChronoUnit
 
 import featureStatistics.feature_statistics.FeatureNameStatistics
@@ -71,7 +70,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
   //  println(proto.toString)
   //  persistProto(proto)
-  //  val r = toJson(proto)
+    val r = toJson(proto)
   //  println(r)
 
   }
@@ -265,43 +264,6 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert("a" === buckets(1).label)
     assert(2 === buckets(1).sampleCount)
 
-  }
-
-
-  ignore("integration") {
-    val features = Array("Age", "Workclass", "fnlwgt", "Education", "Education-Num", "Marital Status",
-                         "Occupation", "Relationship", "Race", "Sex", "Capital Gain", "Capital Loss",
-                         "Hours per week", "Country", "Target")
-
-    val trainData: DataFrame = loadCSVFile("src/test/resources/data/adult.data.csv")
-    val testData = loadCSVFile("src/test/resources/data/adult.test.txt")
-
-    val train = trainData.toDF(features: _*)
-    val test = testData.toDF(features: _*)
-
-    val dataframes = List(NamedDataFrame(name = "train", train),
-                          NamedDataFrame(name = "test", test))
-
-    val proto = generator.protoFromDataFrames(dataframes)
-    persistProto(proto,base64Encode = false, new File("src/test/resources/data/stats.pb"))
-    persistProto(proto,base64Encode = true, new File("src/test/resources/data/stats.txt"))
-  }
-
-  private def loadCSVFile(filePath: String) : DataFrame = {
-    val spark = sqlContext.sparkSession
-    spark.read
-      .format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
-      .option("header", "false") //reading the headers
-      .option("mode", "DROPMALFORMED")
-      .option("inferSchema", "true")
-      .load(filePath)
-  }
-
-
-  def writeToFile(fileName:String, content:String): Unit = {
-    import java.nio.charset.StandardCharsets
-    import java.nio.file.{Files, Paths}
-    Files.write(Paths.get(fileName), content.getBytes(StandardCharsets.UTF_8))
   }
 
 }

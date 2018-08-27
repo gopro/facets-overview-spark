@@ -61,7 +61,7 @@ We can use Spark to leverage the spark generate stats with distributed computini
 * In this implementation, we can leveraging tensorflow/ecosystem/spark-tensorflow-connector for tensorflow record support, where we can load the TFRecords into spark DataFrame. Once the DataFrame is created, rest of implementation is almost same.
 * We use DataFrame to represent the Feature. this is equivalent the feature array used in the Numpy. 
 * Efficiency is not the major concern in this first version of design, we may have to pass data in multiple passes.
-
+* Feature names need to be santized (replace white space, dash (-) or special characters to underscore)
 
 ## Data Structures
 
@@ -309,11 +309,95 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
  and pass-in optional schema
 
 
+## How to use the generated feature statistics in Jupyter notebook (scala, python)
+
+   This demo simulates the original facets-overview with
+   (https://github.com/PAIR-code/facets/blob/master/facets_overview/Overview_demo.ipynb)
+   in the original demo train data and test data are located at
+
+   https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data
+   https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test
+
+   we decided to pre-download the data, the data is not large, so we store data in the project
+   and we can work offline.
+
+   the original demo has the following parts (in different cells, in Jupyter Notebook)
+   * Part 1: Generate Panda DataFrames from CSV files
+   * Part 2: Pass the data frames to the features stats generator to generate protobuf
+   * Part 3: Base64 Encode the Protobuf structure to String
+   * Part 4: Pass the probuf string to HTML Display
+
+   We are going to do the same
+
+   * Part 1: Use Spark to generate Spark DataFrames from CSV files (Scala)
+   * Part 1: Pass the data frames to the features stats generator to generate protobuf (Scala + Spark), probuf is save to local file
+   * Part 3  In Jupyter Notebook, we read the protobuf from file and encoded to base64 if needed.
+   * Part 4: Pass the probuf structure to HTML Display
 
 
-## How to use the generated feature statistics in Jupyter notebook (python)
+   Let's dive a bit mroe details on each part.
 
-* todo: add code to show how to use jupyter notebook
+   * Part 1: Generate Spark Data Frames
+   
+```
+    //original feature columns
+    val columns = Array("Age", "Workclass", "fnlwgt", "Education", "Education-Num", "Marital Status",
+      "Occupation", "Relationship", "Race", "Sex", "Capital Gain", "Capital Loss",
+      "Hours per week", "Country", "Target")
+
+    //normalize the feature names by removing dash, space etc.
+    val features: Array[String] = DataFrameUtils.sanitizedNames(columns)
+```
+    Slightly different from the original examaple, we sanitized the column, Column contains "-" or white space ' ' 
+    or special characters may not be works well if one decide to persist the data frame to hive table.
+    
+    The libary always santize the column name during stats generation as part of the design consideration
+    so we need to santize the feature columns first.  
+     
+    Next, we use Spark CSV parser to load the csv to Data Frames,
+
+```
+    //load train data and test data from CSV Files
+    val trainData: DataFrame = loadCSVFile("src/test/resources/data/adult.data.csv")
+    val testData: DataFrame = loadCSVFile("src/test/resources/data/adult.test.txt")
+
+    //set the feature column names to the Data Frames.
+    val train = trainData.toDF(features: _*)
+    val test = testData.toDF(features: _*)    
+```
+    Once we load the data frames, we can put them into NamedDataFrames, then we are ready for next steps. 
+    
+```
+    //create named dataframes
+    val dataframes = List(NamedDataFrame(name = "train", train), NamedDataFrame(name = "test", test))
+    
+```
+
+   * part 2: generate feature statistics and save to files
+   
+    Here are saved two version of files, one is binary, andother one is base64 encoded binary file.
+    If one uses the later version, you won't need to encoded into base64 in Juypter notebook. 
+
+```    
+    val proto = generator.protoFromDataFrames(dataframes)
+
+    //persist protobuf binary into files (without or with base64 encoding)
+    persistProto(proto, base64Encode = false, new File("src/test/resources/data/stats.pb"))
+    persistProto(proto, base64Encode = true, new File("src/test/resources/data/stats.txt"))
+
+```
+
+   The complete code can be found in 
+   [Overview Demo](src/test/scala/facets/overview/OverviewDemo.scala)
+
+
+   * Part 3 : load protobuf to Jupyter Notebook
+   
+   Now, look at the [Jupyter Notebook](src/demo/python/overview_demo_with_pb.ipynb)
+
+   We load the "stats.txt" file to a string. Since the string is already base64encoded, 
+   we just directly pass to HTML Template. 
+
 
 ## How to use the generated feature statistics in browser (javascripts)
 *  todo: add code to show how to use it in Javascripts

@@ -87,4 +87,8 @@ object DataFrameUtils {
   private def sanitizedName(col: Column) = {
     col.toString().replace(".", "_").replace("-", "_").replace("__", "_").replaceFirst("^_", "").toLowerCase
   }
+
+  def sanitizedNames(cols: Array[String]): Array[String] = {
+    cols.map(col => col.replace(".", "_").replace("-", "_").replace("__", "_").replaceFirst("^_", "").toLowerCase)
+  }
 }

@@ -431,7 +431,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(featListHistBuckets.head.highValue === 25)
   }
 
-
+  //change ignore to test to run this.
   ignore ("SequenceExample1") {
 
     val data = Seq((Seq(Seq("Tim Robbins","Morgan Freeman"), Seq("Brad Pitt","Edward Norton","Helena Bonham Carter")),
