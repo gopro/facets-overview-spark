@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html class="nojs html css_verticalspacer" lang="en-US">
+<head>
+
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="icon" sizes="16x16 32x32 64x64" href="favicon/favicon.ico">
+    <link rel="icon" type="image/png" sizes="196x196" href="favicon/favicon-192.png">
+    <link rel="icon" type="image/png" sizes="160x160" href="favicon/favicon-160.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="favicon/favicon-96.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="favicon/favicon-64.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16.png">
+    <link rel="apple-touch-icon" href="favicon/favicon-57.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="favicon/favicon-114.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="favicon/favicon-72.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="favicon/favicon-144.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="favicon/favicon-60.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="favicon/favicon-120.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="favicon/favicon-76.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="favicon/favicon-152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon/favicon-180.png">
+    <meta name="msapplication-TileColor" content="#FFFFFF">
+    <meta name="msapplication-TileImage" content="favicon/favicon-144.png">
+    <meta name="msapplication-config" content="favicon/browserconfig.xml">
+
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
+
+
+    <title>Facets - Visualizations for ML datasets</title>
+    <!-- CSS -->
+    <link rel="stylesheet" type="text/css" href="css/site_global.css?crc=4114105841"/>
+    <link rel="stylesheet" type="text/css" href="css/index.css?crc=4193858645"
+          id="pagesheet"/>
+
+    <!--Fonts-->
+    <link href="https://fonts.googleapis.com/css?family=Work+Sans:300,400,500,600,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet">
+
+
+    <!-- Other scripts -->
+
+    <!-- JS includes -->
+
+    <script type="text/javascript"
+            src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.7.24/webcomponents-lite.js"></script>
+    <link rel="import" href="./facets.html">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</head>
+
+
+<body>
+<!-- Top Anchor   -->
+<a class="anchor_item colelem" id="top"></a>
+
+<div class="clearfix" id="page"><!-- column -->
+    <div class="position_content" id="page_position_content">
+
+        <!-- header -->
+        <div class="clearfix colelem" id="pu130"><!-- group -->
+        </div>
+
+
+        <div class="separator" id="facets-overview"><!-- separating line --></div>
+
+        <div class="title facets-ov">
+            <h1>Facets Overview</h1>
+        </div>
+
+        <div class="subhead facets-ov">
+            <h2><span class='focus-word'>Overview</span> takes input feature data from any number of datasets, analyzes
+                them feature by feature and visualizes the analysis.</h2>
+        </div>
+
+        <div class="desc-copy facets-ov">
+            <p>Overview gives users a quick understanding of the distribution of values across the features of their
+                dataset(s). Uncover several uncommon and common issues such as unexpected feature values, missing
+                feature
+                values for a large number of observation, training/serving skew and train/test/validation set skew.</p>
+        </div>
+
+        <div class="facets-ov-demo">
+
+        </div>
+
+
+        <div class="demo-desc-box facets-ov">
+            <div class="facets-ov demo-title-bar">
+                <h5 class="demo-head">Try it out</h5>
+                <div class="demo-line facets-ov"><!-- simple frame --></div>
+            </div>
+            <div class='demo-desc facets-ov'>
+                <div class="facets-ov demo-copy col1"><!-- content -->
+                    <h6 class='summary'>Facets Overview summarizes statistics for each feature and compares the training
+                        and test datasets. It becomes easy to learn the distribution of values across the 6 numeric and
+                        9 categorical features for both datasets.</h6>
+                </div>
+                <div class="demo-copy col2"><!-- content -->
+                    <h6>Use the “Sort by” dropdown to sort features by “Distribution distance”. This sort order brings
+                        to the top of the tables, the features that are the most different between the two datasets.
+                        “Target” becomes the first feature in the table of categorical features. The chart for this
+                        feature shows that the training and test datasets actually use slightly different labels (“&gt;50K”
+                        for the training data and “&gt;50K.” for test data - notice the trailing period). This helps us
+                        uncover an unexpected difference between the training data and the test data.</h6>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <input type="file" id="fileupload" style="visibility:hidden" multiple/>
+    <!-- Other scripts -->
+</div>
+<script>
+
+  function setupVis() {
+
+    $.when(protoAjax()).done(function(protoAjax) {
+      var overview = $("#foelem")[0];
+      overview.protoInput = protoAjax;
+    });
+
+    function trainAjax() {
+      return $.getJSON({url: "train.json"});
+    }
+    function testAjax() {
+      return $.getJSON({url: "test.json"});
+    }
+
+    function protoAjax() {
+      return $.get({url: "../../src/test/resources/data/stats.pb.txt"});
+    }
+
+  }
+  $(document).on('click', 'a[href*=\\#]', function(event){
+    event.preventDefault();
+    $('html, body').animate({
+        scrollTop: $(this.hash).offset().top
+    }, 500);
+  });
+
+
+</script>
+
+<script>
+  window.addEventListener('WebComponentsReady', function() {
+
+    var link = document.createElement("link");
+    link.rel = "import";
+    link.href = "./facets.html";
+    link.onload= function() {
+      var overview = document.createElement("facets-overview");
+      overview.id = "foelem";
+      $(".facets-ov-demo")[0].appendChild(overview);
+      setupVis();
+    };
+    document.head.appendChild(link);
+  });
+
+
+</script>
+
+
+</body>
+
+</html>

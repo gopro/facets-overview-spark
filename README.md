@@ -402,3 +402,8 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 ## How to use the generated feature statistics in browser (javascripts)
 *  todo: add code to show how to use it in Javascripts
 
+ Using a HTTP server for python
+```
+    python -m http.server
+```
+

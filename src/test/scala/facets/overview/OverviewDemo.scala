@@ -71,7 +71,7 @@ class OverviewDemo extends StatsGeneratorTestBase {
 
     //persist protobuf binary into files (without or with base64 encoding)
     persistProto(proto, base64Encode = false, new File("src/test/resources/data/stats.pb"))
-    persistProto(proto, base64Encode = true, new File("src/test/resources/data/stats.txt"))
+    persistProto(proto, base64Encode = true, new File("src/test/resources/data/stats.pb.txt"))
 
 
   }
