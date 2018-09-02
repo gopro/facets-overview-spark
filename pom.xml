@@ -23,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>feacets-overview-spark</groupId>
     <version>0.1.0-SNAPSHOT</version>
-    <artifactId>facets-stats</artifactId>
+    <artifactId>facets-overview-spark</artifactId>
     <name>facets-overview-spark</name>
     <organization>
         <name>GoPro</name>

@@ -393,17 +393,81 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
    * Part 3 : load protobuf to Jupyter Notebook
    
-   Now, look at the [Jupyter Notebook](src/demo/python/overview_demo_with_pb.ipynb)
+   Now, look at the [Jupyter Notebook](demo/python/overview_demo_with_pb.ipynb)
+   
+   We load the "stats.pb.txt" file to a string. Since the stats.pb.txt is simply base64encoded protobuf stats.pb
+   we just directly load it to string and pass to HTML Template. 
 
-   We load the "stats.txt" file to a string. Since the string is already base64encoded, 
-   we just directly pass to HTML Template. 
 
+   As noted in [Facets](https://github.com/PAIR-code/facets)
 
-## How to use the generated feature statistics in browser (javascripts)
-*  todo: add code to show how to use it in Javascripts
+   For using Facets Overview in a Jupyter notebook, you will need to change the path that the Facets Overview python 
+   code is loaded from to the correct path given where your notebook kernel is run from.
+   
+   Assuming that you are going to start the notebook kernel on project directory, 
+   
+   
+   In the code, we specify the path as "../../src/test/resources/data/stats.pb.txt" as the notebook file *.ipynb 
+   is located at <project dir>/demo/python/ directory; and test file "stats.pb.txt" is in <project dir>/src/test/resources/data/ directory
+   
+   Note the HTML template href is href="/notebooks/demo/facets-jupyter.html" as the notebook kernel is started 
+   at <project dir> and file facets-jupyter.html is located at <project dir>/demo/ directory
+   
+   If you want to move the files in locations or start notebook kernel in different locations, you need to adjust those paths. 
+    
+   
+   When visualizing a large amount of data in a Juypter notebook,you will need to start the notebook server with 
+   an increased IOPub data rate. This can be done with the command 
+   ```
+   jupyter notebook --NotebookApp.iopub_data_rate_limit=10000000
+   ```
 
- Using a HTTP server for python
+## How to viualize the generated feature statistics in browser (javascripts)
+
+   Google Facets (https://github.com/PAIR-code/facets) has provided Javascripts visualization, 
+   it is located in different branch (rather than master branch). 
+   
+   This can be seen in demo page works (https://pair-code.github.io/facets/) 
+   and the code for that page here: https://github.com/PAIR-code/facets/blob/gh-pages/index.html#L231
+   
+   I copied the corresponding CSS, javascripts codes, as well as HTML pages and simplified a bit. 
+   I removed the section that load your own data Javascripts, Facets-Dive and only leaves Facets Overview.
+   
+   You can see the code in demo/javascripts folder. 
+   
+   The difference here is that we don't re-generate the features stats from existing file, it will load the 
+   probuff string from the file we already generated. 
+   
+   using JQuery, you can do this as followings (index.html)
+   
+   ```
+
+    $.when(protoAjax()).done(function(protoAjax) {
+      var overview = $("#foelem")[0];
+      overview.protoInput = protoAjax;
+    });
+
+    function protoAjax() {
+      return $.get({url: "../../src/test/resources/data/stats.pb.txt"});
+    }
+
+   ``` 
+   
+   If you want to try this out, you can start a http server
+   
+   Using a HTTP server for python, you can do the following  
+ 
 ```
     python -m http.server
 ```
 
+   Then, in the browser put the URL to 
+   
+  
+   http://0.0.0.0:8000/demo/javascripts/index.html
+   
+   
+   if you like to load different datasets, you can generate a new protobuf and change
+   above path. Or add javascripts function to change the paths. 
+   
+    

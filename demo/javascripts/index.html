@@ -121,13 +121,6 @@
       overview.protoInput = protoAjax;
     });
 
-    function trainAjax() {
-      return $.getJSON({url: "train.json"});
-    }
-    function testAjax() {
-      return $.getJSON({url: "test.json"});
-    }
-
     function protoAjax() {
       return $.get({url: "../../src/test/resources/data/stats.pb.txt"});
     }
