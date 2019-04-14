@@ -126,6 +126,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
  
 ``` 
+notice here that DatasetFeatureStatisticsList is class generated based on protobuf definition
 
 ## FeatureStatsGenerator
 
