@@ -149,7 +149,7 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 
 
 
-## Usage Smaples
+## Usage Samples
 
    ### Generate Protobuf from DataFrame (using CSV)
 
