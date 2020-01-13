@@ -29,7 +29,7 @@
         <name>GoPro</name>
     </organization>
     <properties>
-        <dse.spark.version>2.1.1</dse.spark.version>
+        <dse.spark.version>2.4.4</dse.spark.version>
         <dse.mockito.version>1.10.19</dse.mockito.version>
         <dse.scala.version>2.11</dse.scala.version>
         <dse.scala.binary.version>2.11</dse.scala.binary.version>
