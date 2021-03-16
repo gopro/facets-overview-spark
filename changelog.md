@@ -6,32 +6,7 @@
    * spark-tensorflow-connector 1.6.0 => 1.15.0
    * tensorflow 1.8.0 => 1.15.0 
    * protobuf version 3.0.0 => 3.8.0
-    
-   * Build changes:
-   using mvn build on Mac Pro, I encounter and error with v3.0.0 of protobuf
-   ```
-   Caused by: java.io.FileNotFoundException: Unsupported platform: protoc-3.0.0-osx-x86_64.exe
-       at com.github.os72.protocjar.Protoc.extractProtoc (Protoc.java:223)
-       at com.github.os72.protocjar.Protoc.extractProtoc (Protoc.java:184)
-       at com.github.os72.protocjar.Protoc.runProtoc (Protoc.java:68)
-       at com.github.os72.protocjar.Protoc.runProtoc (Protoc.java:55)
-       at scalapb.ScalaPBC$$anonfun$2.apply (ScalaPBC.scala:61)
-       at scalapb.ScalaPBC$$anonfun$2.apply (ScalaPBC.scala:61)
-       at protocbridge.ProtocBridge$.runWithGenerators (ProtocBridge.scala:117)
-       at scalapb.ScalaPBC$.main (ScalaPBC.scala:53)
-       at scalapb.ScalaPBC.main (ScalaPBC.scala) 
-   ```
-   to get around this error, I create a Dockerfile of ubuntu:18.04 image and build the project 
-   inside the docker instance.
-   
-   The docker-based build is slow, as the docker doesn't remember the maven artifacts already downloaded 
-   so each build it try to download all the maven dependencies, it at least it works. 
-   
-   * in Docker run, need to increase memory used to 2g, 
-     as default docker memory is not enough to run Spark Job. 
-     
-   * but when upgrade to v3.8.0, this error goes away, I kept the Dockerfile and build.sh in case we have to build 
-     in linux env. 
+
      
       
      
