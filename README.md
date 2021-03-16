@@ -457,29 +457,15 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 
 ### Build
 ```
-    mvn clean install
+    mvn clean package
 ```
+ * note: the build.sh and docker file is added, in case you need to build in linux env. for special version of protobuf (such as v3.0.0)
 
 ### Test
 ```
     mvn test
 ```
 
-Except in the current version, ScalaPB throws the following exception when running in Mac OS.
-```
-java.io.FileNotFoundException: Unsupported platform: protoc-3.0.0-osx-x86_64.exe
-``` 
-One way to get around this is using Docker, i.e. do maven build within a ubuntu docker instance. 
-If you are using Mac and you are experiencing the same error, you might have to use the following command. 
-
-```
-./build.sh build
-```
-where build command execute the ```mvn clean package ``` inside the docker
-the result we be in the target directory as normal maven command. 
-
-It will take a bit longer than normal maven build from local machine. 
-It will needs to build docker image first, and then download all maven dependencies, before it runs the package command. 
 
 
 
@@ -488,6 +474,6 @@ It will needs to build docker image first, and then download all maven dependenc
     Apache License 2.0
 ```
 
-* todo : add code to package to update to maven repository
+
 
     
