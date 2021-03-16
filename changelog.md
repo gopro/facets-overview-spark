@@ -7,7 +7,4 @@
    * tensorflow 1.8.0 => 1.15.0 
    * protobuf version 3.0.0 => 3.8.0
 
-     
-      
-     
   

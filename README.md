@@ -464,15 +464,8 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 ```
     mvn test
 ```
-
-
-
-
 ### License
 ```
     Apache License 2.0
 ```
-
-
-
     
