@@ -22,14 +22,15 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>feacets-overview-spark</groupId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.2.0</version>
     <artifactId>facets-overview-spark</artifactId>
     <name>facets-overview-spark</name>
     <organization>
         <name>GoPro</name>
     </organization>
     <properties>
-        <dse.spark.version>2.1.1</dse.spark.version>
+        <dse.spark.version>2.4.6</dse.spark.version>
+        <dse.scalapb.version>0.9.8</dse.scalapb.version>
         <dse.mockito.version>1.10.19</dse.mockito.version>
         <dse.scala.version>2.11</dse.scala.version>
         <dse.scala.binary.version>2.11</dse.scala.binary.version>
@@ -105,7 +106,7 @@
                                 <artifactId>scalapbc_2.11</artifactId>
                             </executableDependency>
                             <arguments>
-                                <argument>-v300</argument> <!-- for protoc v3.0.0, can be 261 for v2.6.1 -->
+                                <argument>-v380</argument> <!-- for protoc v3.8.0, can be 261 for v2.6.1 -->
                                 <argument>--throw</argument> <!-- Important: otherwise scalapbc will kill the VM -->
                                 <argument>--proto_path=${project.basedir}/src/main/protobuf</argument>
                                 <argument>--proto_path=${project.basedir}/third_party</argument>
@@ -124,7 +125,7 @@
                     <dependency>
                         <groupId>com.thesamet.scalapb</groupId>
                         <artifactId>scalapbc_2.11</artifactId>
-                        <version>0.7.0-rc4</version>
+                        <version>${dse.scalapb.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -286,26 +287,26 @@
         <dependency>
             <groupId>com.thesamet.scalapb</groupId>
             <artifactId>scalapb-runtime_2.11</artifactId>
-            <version>0.7.0-rc4</version>
+            <version>${dse.scalapb.version}</version>
         </dependency>
 
         <dependency>
                 <groupId>com.thesamet.scalapb</groupId>
             <artifactId>scalapb-json4s_2.11</artifactId>
-            <version>0.7.0</version>
+            <version>0.10.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/org.tensorflow/spark-tensorflow-connector -->
         <dependency>
             <groupId>org.tensorflow</groupId>
             <artifactId>spark-tensorflow-connector_2.11</artifactId>
-            <version>1.6.0</version>
+            <version>1.15.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.tensorflow</groupId>
             <artifactId>tensorflow</artifactId>
-            <version>1.8.0</version>
+            <version>1.15.0</version>
         </dependency>
 
     </dependencies>

@@ -130,24 +130,6 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 
 ## FeatureStatsGenerator
 
-### Build
-```
-    mvn clean install
-```
-
-### Test
-```
-    mvn test
-```
-
-### License
-```
-    Apache License 2.0
-```
-
-* todo : add code to package to update to maven repository
-
-
 
 ## Usage Samples
 
@@ -470,4 +452,27 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
    if you like to load different datasets, you can generate a new protobuf and change
    above path. Or add javascripts function to change the paths. 
    
+## Development
+ This is maven project, so it usually follows the standard maven commands for build. 
+
+### Build
+```
+    mvn clean package
+```
+
+### Test
+```
+    mvn test
+```
+
+
+
+
+### License
+```
+    Apache License 2.0
+```
+
+
+
     

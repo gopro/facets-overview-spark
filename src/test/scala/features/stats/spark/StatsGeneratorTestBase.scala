@@ -27,21 +27,17 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 
 abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
-
     val appName = "protoGenerator"
-    val SPARK_MASTER_URL = "local[2]"
-    var sc: SparkContext = _
-    var sqlContext: SQLContext = _
-    val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
-    var spark: SparkSession = _
+    val spark: SparkSession = SparkSession.builder
+                                          .appName(appName)
+                                          .enableHiveSupport()
+                                          .config("spark.driver.memory", "1.5g")
+                                          .master("local[2]")
+                                          .getOrCreate()
+
+  val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
 
     override protected def beforeAll(): Unit = {
-      val sparkConf = new SparkConf().setMaster(SPARK_MASTER_URL).setAppName(appName)
-      //sparkConf.set("spark.sql.session.timeZone", "GMT")
-
-      sc = SparkContext.getOrCreate(sparkConf)
-      sqlContext = SqlContextFactory.getOrCreate(sc)
-      spark = sqlContext.sparkSession
       spark.sparkContext.setLogLevel("ERROR")
     }
 
@@ -74,7 +70,6 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
 
 
   def loadCSVFile(filePath: String) : DataFrame = {
-    val spark = sqlContext.sparkSession
     spark.read
       .format("org.apache.spark.sql.execution.datasources.csv.CSVFileFormat")
       .option("header", "false") //reading the headers

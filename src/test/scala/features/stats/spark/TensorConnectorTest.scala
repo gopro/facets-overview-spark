@@ -28,16 +28,15 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
 class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
 
   val appName = "TensorConnector"
-  val SPARK_MASTER_URL = "local[2]"
-  var sc: SparkContext = _
-  var sqlContext: SQLContext = _
-  var spark: SparkSession = _
+  val spark: SparkSession = SparkSession.builder
+                                        .appName(appName)
+                                        .master("local[2]")
+                                        .enableHiveSupport()
+                                        .config("spark.driver.memory", "1.5g")
+                                        .getOrCreate()
 
   override protected def beforeAll(): Unit = {
-    val sparkConf = new SparkConf().setMaster(SPARK_MASTER_URL).setAppName(appName)
-    sc = SparkContext.getOrCreate(sparkConf)
-    sqlContext = SqlContextFactory.getOrCreate(sc)
-    spark = sqlContext.sparkSession
+
   }
 
 
@@ -154,7 +153,6 @@ class TensorConnectorTest extends FunSuite with BeforeAndAfterAll{
   test ("load tfrecords2") { //simpler way to do this.
 
     val path = "target/test-output.tfrecord2"
-    val spark = sqlContext.sparkSession
     import spark.implicits._
 
     val testRows = Array((11, 1, 23L, 10.0F, 14.0D, List(1.0D, 2.0D), "r1"), (21, 2, 24L, 12.0F, 15.0D, List(2.0D, 2.0D), "r2") )

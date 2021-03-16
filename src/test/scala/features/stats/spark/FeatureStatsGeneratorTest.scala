@@ -77,9 +77,8 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
 
   test("testGenEntry") {
-    val spark = sqlContext.sparkSession
     import spark.implicits._
-
+    val sc = spark.sparkContext
     var arr1 = Seq[Double] (1.0, 2.0, Double.NaN, Double.NaN, 3.0, null.asInstanceOf[Double])
     var df = sc.parallelize(arr1).toDF("TestFeatureDouble")
 
@@ -107,10 +106,10 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     val ts1 = LocalDateTime.of(2005, 2, 25, 0, 0).toInstant(ZoneOffset.UTC).getEpochSecond
     val ts2 = LocalDateTime.of(2006, 2, 25, 0, 0).toInstant(ZoneOffset.UTC).getEpochSecond
 
-    val spark = sqlContext.sparkSession
     import org.apache.spark.sql.functions._
     import spark.implicits._
 
+    val sc = spark.sparkContext
     var arr = Seq[String]("2005-02-25", "2006-02-25")
     var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_date($"TestFeatureDate"))
     var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
@@ -128,7 +127,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     val endDate = LocalDate.of(2009, Month.JANUARY, 1)
     val numberOfDays = ChronoUnit.DAYS.between(startDate, endDate)
     var arr1 = Seq[Long](numberOfDays*24*60*60*1000*1000)
-    var df1 = sc.parallelize(arr1).toDF("TestFeatureDate")
+    var df1 = spark.sparkContext.parallelize(arr1).toDF("TestFeatureDate")
     var dataframes1 = List(NamedDataFrame(name = "testDataSet1", df1))
     var dataset1:DataEntrySet = generator.toDataEntries(dataframes1).head
     var entry1:DataEntry = dataset1.entries.head
@@ -157,8 +156,8 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
 
   test("testGetDatasetsProtoSequenceExampleHistogram") {
-    val sp= sqlContext.sparkSession
-    import sp.implicits._
+    import spark.implicits._
+    val sc = spark.sparkContext
     var df = sc.parallelize(Seq(1,2,2,3)).toDF("featureInt")
     var countDF = sc.parallelize(Seq (1, 2, 1)).toDF("counts")
     var featLensDF = sc.parallelize(Seq (1, 2, 1)).toDF("feat_lens")
@@ -190,9 +189,8 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
 
   test("testGetDatasetsProtoWithWhitelist") {
-
-    val sp= sqlContext.sparkSession
-    import sp.implicits._
+    import spark.implicits._
+    val sc = spark.sparkContext
     var df1 = sc.parallelize(Seq(1,2,3)).toDF("testFeature")
     var countDF1 = sc.parallelize(Seq (1, 1, 1)).toDF("counts")
     val entry1: DataEntry = DataEntry( featureName = "testFeature",
@@ -228,11 +226,10 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
   }
 
   test("GetDatasetsProtoWithMaxHistigramLevelsCount") {
-    val spark = sqlContext.sparkSession
-    import spark.implicits._
+     import spark.implicits._
 
     val data = Seq[String]("hi", "good", "hi","hi","a", "a")
-    val df :DataFrame= sqlContext.sparkContext.parallelize(data).toDF("TestFeatureString")
+    val df :DataFrame= spark.sparkContext.parallelize(data).toDF("TestFeatureString")
     val dataframes = List(NamedDataFrame(name = "testDataSet", df))
 //    # Getting proto from ProtoFromDataFrames instead of GetDatasetsProto
 //    # directly to avoid any hand written values ex: size of dataset.
