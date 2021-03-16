@@ -5,8 +5,9 @@
    * scalapb-json4s => 0.10.0 
    * spark-tensorflow-connector 1.6.0 => 1.15.0
    * tensorflow 1.8.0 => 1.15.0 
+   * protobuf version 3.0.0 => 3.8.0
     
-   Build changes:
+   * Build changes:
    using mvn build on Mac Pro, I encounter and error
    ```
    Caused by: java.io.FileNotFoundException: Unsupported platform: protoc-3.0.0-osx-x86_64.exe
@@ -26,6 +27,7 @@
    the build is slow, as the docker doesn't remember the maven artifacts already downloaded 
    so each build it try to download all the maven dependencies, it at least it works. 
    
-   
+   * in Docker run, need to increase memory used to 2g, 
+     as default docker memory is not enough to run Spark Job. 
      
   

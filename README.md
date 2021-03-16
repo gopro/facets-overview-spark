@@ -469,17 +469,17 @@ Except in the current version, ScalaPB throws the following exception when runni
 ```
 java.io.FileNotFoundException: Unsupported platform: protoc-3.0.0-osx-x86_64.exe
 ``` 
-I have to get around it using a Docker, i.e. build within a ubuntu docker instance. 
-
-So if you are using Mac, you will have to do 
+One way to get around this is using Docker, i.e. do maven build within a ubuntu docker instance. 
+If you are using Mac and you are experiencing the same error, you might have to use the following command. 
 
 ```
 ./build.sh build
 ```
 where build command execute the ```mvn clean package ``` inside the docker
-the result we be in the target directory as normal maven command 
-  
- 
+the result we be in the target directory as normal maven command. 
+
+It will take a bit longer than normal maven build from local machine. 
+It will needs to build docker image first, and then download all maven dependencies, before it runs the package command. 
 
 
 
