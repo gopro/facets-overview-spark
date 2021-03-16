@@ -459,14 +459,15 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 ```
     mvn clean package
 ```
+ * note: the build.sh and docker file is added, in case you need to build in linux env. for special version of protobuf (such as v3.0.0)
 
 ### Test
 ```
     mvn test
 ```
-
+ 
 ### License
 ```
     Apache License 2.0
 ```
-    
+ 
