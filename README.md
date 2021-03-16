@@ -130,24 +130,6 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 
 ## FeatureStatsGenerator
 
-### Build
-```
-    mvn clean install
-```
-
-### Test
-```
-    mvn test
-```
-
-### License
-```
-    Apache License 2.0
-```
-
-* todo : add code to package to update to maven repository
-
-
 
 ## Usage Samples
 
@@ -470,4 +452,42 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
    if you like to load different datasets, you can generate a new protobuf and change
    above path. Or add javascripts function to change the paths. 
    
+## Development
+ This is maven project, so it usually follows the standard maven commands for build. 
+
+### Build
+```
+    mvn clean install
+```
+
+### Test
+```
+    mvn test
+```
+
+Except in the current version, ScalaPB throws the following exception when running in Mac OS.
+```
+java.io.FileNotFoundException: Unsupported platform: protoc-3.0.0-osx-x86_64.exe
+``` 
+I have to get around it using a Docker, i.e. build within a ubuntu docker instance. 
+
+So if you are using Mac, you will have to do 
+
+```
+./build.sh build
+```
+where build command execute the ```mvn clean package ``` inside the docker
+the result we be in the target directory as normal maven command 
+  
+ 
+
+
+
+### License
+```
+    Apache License 2.0
+```
+
+* todo : add code to package to update to maven repository
+
     

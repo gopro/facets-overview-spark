@@ -30,7 +30,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 
     val data = (0 until 50).map(i => (i, 0))
     val features = Array("num", "other")
-    val spark = sqlContext.sparkSession
     import spark.implicits._
     val datadf = spark.sparkContext.parallelize(data).toDF(features: _*)
     //save it to make tensorflow record
@@ -113,7 +112,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val data2 = (0 until 50).map(i => 100)
 
     val features = Array("num")
-    val spark = sqlContext.sparkSession
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data1++data2).toDF(features: _*)
 
@@ -141,7 +139,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val data2 = Array(Float.PositiveInfinity, Float.NegativeInfinity, Float.NaN)
 
     val features = Array("num")
-    val spark = sqlContext.sparkSession
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data1++data2).toDF(features: _*)
 
@@ -180,7 +177,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val data1 = Array(Float.NegativeInfinity, Float.PositiveInfinity)
 
     val features = Array("num")
-    val spark = sqlContext.sparkSession
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data1).toDF(features: _*)
 
@@ -217,7 +213,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
   test("GetProtoMultipleDatasets") {
     //     Tests converting multiple datsets into the feature stats proto
     //     including ensuring feature order is consistent in the protos.
-    val spark = sqlContext.sparkSession
+
     import spark.implicits._
 
     val data1 = (0 until 2).map(i => ("one", 0))
@@ -260,7 +256,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val data  = data1 ++ data2 ++ data3
 
     val features = Array("str")
-    val spark = sqlContext.sparkSession
+
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
@@ -323,7 +319,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
 
     val data  = Seq(null, "test" )
     val features = Array("str")
-    val spark = sqlContext.sparkSession
+
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
@@ -341,7 +337,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
   test("TFExampleSequenceContxt") {
     val data  = (0 until 50 )
     val features = Array("num")
-    val spark = sqlContext.sparkSession
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
@@ -365,7 +360,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
   test("ExampleSequenceFeatureList") {
     val data  = Array(Array(seqdata))
     val features = Array("num")
-    val spark = sqlContext.sparkSession
+
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data).toDF(features: _*)
@@ -382,7 +377,7 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
   test("ExampleSequenceFeatureWithValueList") {
     val data1  = Seq(Seq(seqdata), Seq(seqdata))
     val features = Array("num")
-    val spark = sqlContext.sparkSession
+
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(data1).toDF(features: _*)
@@ -406,7 +401,6 @@ class TensorStatsGeneratorTest extends StatsGeneratorTestBase {
     val featData2 = (0 until 25).map( j =>  Array(25 + j) ).toArray.toList
 
     val features = Array("num")
-    val spark = sqlContext.sparkSession
 
     import spark.implicits._
     val datadf1 = spark.sparkContext.parallelize(Seq(featData1)++ Seq(featData2)).toDF(features: _*)
