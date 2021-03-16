@@ -30,7 +30,7 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
     val appName = "protoGenerator"
     val spark: SparkSession = SparkSession.builder
                                           .appName(appName)
-//                                          .enableHiveSupport()
+                                          .enableHiveSupport()
                                           .config("spark.driver.memory", "1.5g")
                                           .master("local[2]")
                                           .getOrCreate()
