@@ -21,10 +21,10 @@
        at scalapb.ScalaPBC$.main (ScalaPBC.scala:53)
        at scalapb.ScalaPBC.main (ScalaPBC.scala) 
    ```
-   to get around this error, I create a Dockerfile and build ubuntu:18.04 image and build the project 
-   in the docker instance.
+   to get around this error, I create a Dockerfile of ubuntu:18.04 image and build the project 
+   inside the docker instance.
    
-   the build is slow, as the docker doesn't remember the maven artifacts already downloaded 
+   The docler-based build is slow, as the docker doesn't remember the maven artifacts already downloaded 
    so each build it try to download all the maven dependencies, it at least it works. 
    
    * in Docker run, need to increase memory used to 2g, 
