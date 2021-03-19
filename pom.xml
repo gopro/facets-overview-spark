@@ -22,7 +22,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>feacets-overview-spark</groupId>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
     <artifactId>facets-overview-spark</artifactId>
     <name>facets-overview-spark</name>
     <organization>
@@ -133,6 +133,7 @@
             <plugin>
                 <groupId>org.scala-tools</groupId>
                 <artifactId>maven-scala-plugin</artifactId>
+                <version>${dse.scala.version}</version>
                 <executions>
                     <execution>
                         <goals>
