@@ -25,12 +25,6 @@ object ProtoUtils {
     new String(b, UTF8_CHARSET)
   }
 
-  def protoToString(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false) : String = {
-    if (base64Encode)
-      base64EncodeProto(proto)
-    else
-      proto.toProtoString
-  }
   def protoToBytes(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false) : Array[Byte]= {
     if (base64Encode)
       base64EncodeProto(proto).getBytes()
