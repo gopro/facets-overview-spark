@@ -16,18 +16,24 @@ object ProtoUtils {
     Files.write(Paths.get(file.getPath),  protoToBytes(proto, base64Encode ))
   }
 
-  def base64EncodeProto(proto: DatasetFeatureStatisticsList): Array[Byte] = {
+  def base64EncodeProto(proto: DatasetFeatureStatisticsList): String = {
     import java.util.Base64
     import java.nio.charset.Charset
     val  UTF8_CHARSET = Charset.forName("UTF-8")
 
     val b = Base64.getEncoder.encode(proto.toByteArray)
-    new String(b, UTF8_CHARSET).getBytes()
+    new String(b, UTF8_CHARSET)
   }
 
-  def protoToBytes(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false) : Array[Byte]= {
+  def protoToString(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false) : String = {
     if (base64Encode)
       base64EncodeProto(proto)
+    else
+      proto.toProtoString
+  }
+  def protoToBytes(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false) : Array[Byte]= {
+    if (base64Encode)
+      base64EncodeProto(proto).getBytes()
     else
       proto.toByteArray
   }
