@@ -22,7 +22,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>facets-overview-spark</groupId>
-    <version>0.3.2</version>
+    <version>0.3.3</version>
     <artifactId>facets-overview-spark</artifactId>
     <name>facets-overview-spark</name>
     <organization>
@@ -230,6 +230,7 @@
     </build>
 
     <dependencies>
+
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
