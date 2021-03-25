@@ -1,3 +1,7 @@
+0.3.3 move common used protobuf functions from test to ProtoUtils.scala
+
+0.3.2 correct group Id misspelling
+
 0.3.0 change the pom.xml to make Spark and Tensorflow as provided to reduce the size 
    of the jar file 
 

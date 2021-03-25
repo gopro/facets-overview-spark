@@ -21,6 +21,7 @@ import java.io.File
 import java.nio.file.{Files, Paths}
 
 import featureStatistics.feature_statistics.DatasetFeatureStatisticsList
+import features.stats.ProtoUtils
 import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
@@ -42,30 +43,16 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
     }
 
   def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean, file: File ):Unit = {
-    if (base64Encode) {
-      import java.util.Base64
-      val b = Base64.getEncoder.encode(proto.toByteArray)
-      import java.nio.charset.StandardCharsets.UTF_8
-      import java.nio.file.{Files, Paths}
-
-      Files.write(Paths.get(file.getPath), new String(b, UTF_8).getBytes(UTF_8))
-    }
-    else {
-      Files.write(Paths.get(file.getPath), proto.toByteArray)
-    }
+    ProtoUtils.persistProto(proto, base64Encode, file)
   }
 
 
   def loadProto(base64Encode: Boolean, file: File ): DatasetFeatureStatisticsList = {
-    import java.util.Base64
-    val bs = Files.readAllBytes(Paths.get(file.getPath))
-    val bytes = if (base64Encode) Base64.getDecoder.decode(bs) else bs
-    DatasetFeatureStatisticsList.parseFrom(bytes)
+    ProtoUtils.loadProto(base64Encode, file)
   }
 
   def toJson(proto: DatasetFeatureStatisticsList) : String = {
-    import scalapb.json4s.JsonFormat
-    JsonFormat.toJsonString(proto)
+    ProtoUtils.toJson(proto)
   }
 
 
@@ -76,13 +63,6 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
       .option("mode", "DROPMALFORMED")
       .option("inferSchema", "true")
       .load(filePath)
-  }
-
-
-  def writeToFile(fileName:String, content:String): Unit = {
-    import java.nio.charset.StandardCharsets
-    import java.nio.file.{Files, Paths}
-    Files.write(Paths.get(fileName), content.getBytes(StandardCharsets.UTF_8))
   }
 
 
