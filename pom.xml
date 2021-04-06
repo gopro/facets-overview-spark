@@ -22,14 +22,14 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>facets-overview-spark</groupId>
-    <version>0.3.3</version>
+    <version>0.3.5</version>
     <artifactId>facets-overview-spark</artifactId>
     <name>facets-overview-spark</name>
     <organization>
         <name>GoPro</name>
     </organization>
     <properties>
-        <dse.spark.version>2.4.6</dse.spark.version>
+        <dse.spark.version>2.4.3</dse.spark.version>
         <dse.scalapb.version>0.9.8</dse.scalapb.version>
         <dse.mockito.version>1.10.19</dse.mockito.version>
         <dse.scala.version>2.11</dse.scala.version>

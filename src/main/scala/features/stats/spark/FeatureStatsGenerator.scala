@@ -194,9 +194,9 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
         val columnDF = df.select(df(f.name))
         val featureDF = if (isNestedArrayType(f)) flattenDataFrame(columnDF, recursive = false) else columnDF
         val flattenDF = flattenDataFrame(featureDF)
-        val protoTypeName = convertDataType(flattenDF.schema.head.dataType.typeName)
-
         val convertedDF = convertToNumberDataFrame(flattenDF.select(f.name))
+        val protoTypeName = convertDataType(convertedDF.schema.head.dataType.typeName)
+
         //Remove all null and nan values and count how many were removed.
         //also remove "NaN" strings
         val filteredFlattenedDF = convertedDF.na.drop().filter(!convertedDF(colName).isNaN)
@@ -566,10 +566,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     val valueDF: DataFrame    = entry.values
     val featureName:String    = entry.featureName
     val basicStats  = getBasicStringStats(valueDF, featureName)
-
-
     val spark = valueDF.sqlContext.sparkSession
-
     val commonStats:CommonStatistics  = getCommonStats(dsSize, entry, basicStats.numNan,dsIndex)
 
     val colDF : DataFrame  = valueDF.select(featureName)
@@ -586,11 +583,11 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     val ranks :Array[(String,Long)] = histgmCatLevelsCount.map(ranksRdd.take).getOrElse(ranksRdd.collect)
     val buckets = ranks.zipWithIndex.map { a =>
                     val ((cat, count), index) = a
-                    RankHistogram.Bucket(lowRank = index, highRank = index, sampleCount = count, label = cat)
+                    var category = if (cat == null)  "null" else cat
+                    RankHistogram.Bucket(lowRank = index, highRank = index, sampleCount = count, label = category)
                   }
 
     val top2Buckets = buckets.take(2).map {b =>FreqAndValue(value = b.label, frequency = b.sampleCount)}
-
     StringStatistics(Some(commonStats),
                      topValues      = top2Buckets,
                      unique         = distinctCount,
@@ -624,7 +621,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
     }
 
-  //Try to confirm the data type to Googe Protobuf enum type
+  //Try to conform the data type to Googe Protobuf enum type
   private[features] def convertDataType(dfType: String) :  ProtoDataType= {
 
     dfType.toLowerCase match {
@@ -653,8 +650,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     field.dataType match {
       case s:NumericType => columnDF
       case s:TimestampType => columnDF.select(convertDateToLong(columnDF(field.name))).toDF(field.name)
-      case s:DateType =>
-        columnDF.select(convertDateToLong(columnDF(field.name))).toDF(field.name)
+      case s:DateType =>      columnDF.select(convertDateToLong(columnDF(field.name))).toDF(field.name)
       //case s:CalendarIntervalType => columnDF //not sure how to convert
       case _ =>
         columnDF

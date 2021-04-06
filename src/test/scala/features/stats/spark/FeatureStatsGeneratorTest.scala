@@ -15,15 +15,19 @@
 //
 
 package features.stats.spark
-
+import featureStatistics.feature_statistics.FeatureNameStatistics.{Type => ProtoDataType}
+import java.io.File
+import java.nio.file.{Files, Paths}
 import java.time.temporal.ChronoUnit
 
-import featureStatistics.feature_statistics.FeatureNameStatistics
+import featureStatistics.feature_statistics.{DatasetFeatureStatisticsList, FeatureNameStatistics}
 import featureStatistics.feature_statistics.Histogram.HistogramType.QUANTILES
+import features.stats.ProtoUtils
 import org.apache.spark.sql.DataFrame
 
-class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
+import scala.io.Source
 
+class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
   test("generateProtoFromDataFrame") {
 
@@ -74,8 +78,6 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
   //  println(r)
 
   }
-
-
   test("testGenEntry") {
     import spark.implicits._
     val sc = spark.sparkContext
@@ -97,6 +99,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(2 === entry.missing)
 
   }
+
   test ("convertTimeTypes") {
 
     import java.util.TimeZone
@@ -262,5 +265,41 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     assert(2 === buckets(1).sampleCount)
 
   }
+  test("generate-string-stats") {
 
+    import org.apache.spark.sql.functions._
+    import spark.implicits._
+
+    val sc = spark.sparkContext
+    var arr = Seq[String]("562b8e36-e104-4709-a600-dab4022d3b1712",
+                                "5fa99f5a-7321-4de6-845c-15f600dbd4b112",
+                                "7088650b-d2ed-45e5-bd58-10a576ffa35512",
+                                "031fbac7-edeb-4b65-b22a-0d88d24eed3c12",
+                                "34c5236b-d27e-4154-bfe7-af83e6a9c50a12",
+                                "04d253aa-e6b8-443b-b3a5-9ba37146763d12",
+                                "c3d048fa-de80-447f-9c82-0d4e7ce69f5f12",
+                                "c5092690-8df7-4a7d-87ea-36a28b58d8a212",
+                                "8c686575-fbb5-4a74-b21d-6d520efa752312",
+                                "0772f11a-f580-4876-93c0-1db0adb7c49112")
+    var df = sc.parallelize(arr).toDF("user_id")
+    var dataFrames = List(NamedDataFrame(name = "train", df))
+    val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
+    val proto = generator.protoFromDataFrames(dataFrames)
+    proto.datasets.foreach{f =>
+      assert(f.name === "train")
+      assert(f.numExamples === 10)
+      f.features.foreach { fe =>
+        assert(fe.`type` == ProtoDataType.STRING)
+        assert(fe.name == "user_id")
+        assert(fe.stats.stringStats.isDefined)
+        val strStats = fe.stats.stringStats.get
+        assert(strStats.avgLength == 38.0)
+        assert(strStats.unique == 10)
+      }
+    }
+//    val protoFile = new File("target", "str_test_stats.pb")
+//    val path = ProtoUtils.persistProto(proto, base64Encode = false, protoFile)
+//    val json = ProtoUtils.toJson(proto)
+
+  }
 }
