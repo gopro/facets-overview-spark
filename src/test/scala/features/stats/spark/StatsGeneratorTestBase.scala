@@ -18,30 +18,41 @@
 package features.stats.spark
 
 import java.io.File
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import featureStatistics.feature_statistics.DatasetFeatureStatisticsList
 import features.stats.ProtoUtils
-import org.apache.spark.sql.{DataFrame, SQLContext, SparkSession}
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 
 abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
-    val appName = "protoGenerator"
-    val spark: SparkSession = SparkSession.builder
-                                          .appName(appName)
-                                          .enableHiveSupport()
-                                          .config("spark.driver.memory", "1.5g")
-                                          .config("spark.sql.warehouse.dir", "target/spark_warehouse" )
-                                          .master("local[2]")
-                                          .getOrCreate()
-
+  var rootTmpDir : Path = Files.createTempDirectory("spark_root").toAbsolutePath
+  val appName    : String = "protoGenerator"
   val generator = new FeatureStatsGenerator(DatasetFeatureStatisticsList())
+  val warehouseDir: Path = Files.createTempDirectory(rootTmpDir, "spark_warehouse")
+  val spark : SparkSession = SparkSession.builder
+                                        .appName(appName)
+                                        .enableHiveSupport()
+                                        .config("spark.driver.memory", "1.5g")
+                                        .config("spark.sql.warehouse.dir", s"${warehouseDir.toString}/spark_warehouse" )
+                                        .master("local[2]")
+                                        .getOrCreate()
 
-    override protected def beforeAll(): Unit = {
-      spark.sparkContext.setLogLevel("ERROR")
+  override def beforeAll(): Unit = {
+    spark.sparkContext.setLogLevel("ERROR")
+  }
+
+
+  override def afterAll(): Unit = {
+    import scala.reflect.io.Directory
+    if (rootTmpDir != null) {
+      val directory = new Directory(rootTmpDir.toFile)
+      directory.deleteRecursively()
     }
+  }
+
+
 
   def persistProto(proto: DatasetFeatureStatisticsList, base64Encode: Boolean, file: File ):Unit = {
     ProtoUtils.persistProto(proto, base64Encode, file)
