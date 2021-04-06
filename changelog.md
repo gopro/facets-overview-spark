@@ -1,3 +1,15 @@
+0.3.5 bug fix
+  * fix field did not correctly specify data type after converted to numeric data frame
+  * fix field values are all nulls, which code can't determine the category of the data type 
+  * Note the date field converted to numerical field is based on the facets_overviews' covert np.datetime64 to INT 
+    but now, I am not sure this is right approach to treat a date field as Integer field.
+    as if the data is originally from a CSV file with Date String, it will be treated the as STRING, 
+    but if the date is selected from Database where the Date String is stored in Date/Timestamp field, then current code 
+    will convert it to numeric field and calculate of stats of the long value. Its not very helpful.  But I might fix it in next PR. 
+  * add more tests
+  
+0.3.4 change Apache Spark dependency to 2.4.6 to 2.4.7 
+
 0.3.3 move common used protobuf functions from test to ProtoUtils.scala
 
 0.3.2 correct group Id misspelling

@@ -1,18 +1,17 @@
 package features.stats
 
 import java.io.File
-import java.net.URI
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import featureStatistics.feature_statistics.DatasetFeatureStatisticsList
-import org.apache.spark.sql.DataFrame
+
 
 
 object ProtoUtils {
 
   def persistProto(proto: DatasetFeatureStatisticsList,
-                   base64Encode: Boolean = false,
-                   file : File) : Unit = {
+                   base64Encode: Boolean = true,
+                   file : File) : Path = {
     Files.write(Paths.get(file.getPath),  protoToBytes(proto, base64Encode ))
   }
 
@@ -25,7 +24,7 @@ object ProtoUtils {
     new String(b, UTF8_CHARSET)
   }
 
-  def protoToBytes(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = false) : Array[Byte]= {
+  def protoToBytes(proto: DatasetFeatureStatisticsList, base64Encode: Boolean = true) : Array[Byte]= {
     if (base64Encode)
       base64EncodeProto(proto).getBytes()
     else

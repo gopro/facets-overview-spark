@@ -33,6 +33,7 @@ abstract class StatsGeneratorTestBase extends FunSuite with BeforeAndAfterAll {
                                           .appName(appName)
                                           .enableHiveSupport()
                                           .config("spark.driver.memory", "1.5g")
+                                          .config("spark.sql.warehouse.dir", "target/spark_warehouse" )
                                           .master("local[2]")
                                           .getOrCreate()
 
