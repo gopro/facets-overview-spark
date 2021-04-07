@@ -15,6 +15,8 @@
 
 
 package features.stats.spark
+import java.text.SimpleDateFormat
+
 import featureStatistics.feature_statistics.FeatureNameStatistics.Type._
 import featureStatistics.feature_statistics.FeatureNameStatistics.{Type => ProtoDataType}
 import featureStatistics.feature_statistics.StringStatistics.FreqAndValue
@@ -86,7 +88,9 @@ import scala.collection.mutable
 
 object FeatureStatsGenerator {
 
+  val dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
   private[features] case class NonZeroInfinite(isNan: Int, isZero: Int, isPosInfinite: Int, isNegInfinite: Int)
+
 
   private[features]  def isFiniteFun(x : Any): Boolean = {
     val value = x.toString.toDouble //todo fix
@@ -139,16 +143,6 @@ object FeatureStatsGenerator {
 
     NonZeroInfinite(isNan = isNan, isZero = isZero, isPosInfinite = isPosInfi, isNegInfinite = isNegInfi)
   }
-  private[features]  def convertDate2Long(value : Any) : Long = {
-    value match {
-      case t:java.util.Date => t.getTime
-      case _ => if  (value == null) 0 else {
-        val x = value.toString.trim
-        if (x.isEmpty) 0 else x.toLong
-      }
-    }
-  }
-  private[features]  def convertDateToLong: UserDefinedFunction = udf((value:Any) => convertDate2Long(value))
   private[features]  def nonZeroOrEmpty: UserDefinedFunction= udf((value : Any) =>nonZeroOrEmptyValue(value))
   private[features]  val checkZeroInfinite : UserDefinedFunction= udf((value : Double) =>checkZeroNanInfiniteFun(value))
 
@@ -194,7 +188,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
         val columnDF = df.select(df(f.name))
         val featureDF = if (isNestedArrayType(f)) flattenDataFrame(columnDF, recursive = false) else columnDF
         val flattenDF = flattenDataFrame(featureDF)
-        val convertedDF = convertToNumberDataFrame(flattenDF.select(f.name))
+        val convertedDF = convertDateDataFrame(flattenDF.select(f.name))
         val protoTypeName = convertDataType(convertedDF.schema.head.dataType.typeName)
 
         //Remove all null and nan values and count how many were removed.
@@ -633,25 +627,26 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
   }
 
   /**
-    * Convert to one column dataFrame to numerical data frame for statistical analysis
+    * Convert Date to String format, as the UI can only handle INT, Numeric and String
+   *
     * If the data frame is already in numerical format, simply return original DataFrame
     * If the data frame type is not convertable, simply return the original DataFrame (so it would be error out later)
-    *
     * Assume the dataframe is already flattened, so there should be no Array or Structure Type.
     *
     * @param columnDF -- input data frame, only only contains one column
     * @return DataFrame
     *
     */
-  private[features] def convertToNumberDataFrame(columnDF: DataFrame): DataFrame = {
+  private[features] def convertDateDataFrame(columnDF: DataFrame): DataFrame = {
+    import org.apache.spark.sql.functions._
     val spark = columnDF.sqlContext.sparkSession
     val field = columnDF.schema.fields(0)
 
+
     field.dataType match {
       case s:NumericType => columnDF
-      case s:TimestampType => columnDF.select(convertDateToLong(columnDF(field.name))).toDF(field.name)
-      case s:DateType =>      columnDF.select(convertDateToLong(columnDF(field.name))).toDF(field.name)
-      //case s:CalendarIntervalType => columnDF //not sure how to convert
+      case s:TimestampType => columnDF.select(date_format(columnDF(field.name), dateFormat)).toDF(field.name)
+      case s:DateType =>      columnDF.select(date_format(columnDF(field.name), dateFormat)).toDF(field.name)
       case _ =>
         columnDF
     }
