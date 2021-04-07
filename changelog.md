@@ -1,3 +1,9 @@
+0.3.7  2021-04-10 cleanup
+  * leverage HTML <link rel="import">  we imported facets-jupyter.html, as result, we don't need to keep 
+    all the styles and CSS for javascripts code. We can need index.html 
+  * make copy of data for easy demo presentation ( although the same file has multiple copies)
+  * removed SQLContextFactory.scala as its no longer needed
+  * Jupyter notebook also updated to reference <facets-jupyter.html> from google facets github instead of local copy
 
 0.3.6  2021-04-06 change the date handling logic: instead of converting date to INT ( which use as timestamp), we convert 
       it to String instead. 

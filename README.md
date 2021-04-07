@@ -31,12 +31,25 @@ Overview can help uncover issues with datasets, including the following:
 Key aspects of the visualization are outlier detection and distribution comparison across multiple datasets. Interesting values (such as a high proportion of missing data, or very different distributions of a feature across multiple datasets) are highlighted in red. Features can be sorted by values of interest such as the number of missing values or the skew between the different datasets.
 
 ```
+Currently Google is no longer active develop Facets Project, but the Facets-overview has been integrated into TFX Validation (https://www.tensorflow.org/tfx/data_validation/get_started, https://github.com/tensorflow/tfx/blob/master/docs/guide/statsgen.md)
+and What-If-Tools (https://pair-code.github.io/what-if-tool/). In TFX, one can launch the facets-overview visualization like
+```
+    tfdv.visualize_statistics(stats)
+```
+
+With Facets-overview-spark, not only you can generate the statistics using spark for big data set, but also you can visualize
+the statistics with Facets just like TFX validation, with simple HTML or jupyter notebook (with out depends on TFX) 
+ 
+ 
+## Facets-overview Implementations
 
 The Facets-overview is consists of 
 
 * Feature Statistics Protocol Buffer
 * Feature Statistics Generation
 * Visualization
+
+
 
 The implementation of Feature Statistics Generation have two flavors : Python (used by Jupyter notebook) and Javascripts (used by web )
 
@@ -317,7 +330,7 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
    * Part 4: Pass the probuf structure to HTML Display
 
 
-   Let's dive a bit mroe details on each part.
+   Let's dive a bit more details on each part.
 
    * Part 1: Generate Spark Data Frames
    
@@ -389,11 +402,8 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
    Assuming that you are going to start the notebook kernel on project directory, 
    
    
-   In the code, we specify the path as "../../src/test/resources/data/stats.pb.txt" as the notebook file *.ipynb 
-   is located at <project dir>/demo/python/ directory; and test file "stats.pb.txt" is in <project dir>/src/test/resources/data/ directory
-   
-   Note the HTML template href is href="/notebooks/demo/facets-jupyter.html" as the notebook kernel is started 
-   at <project dir> and file facets-jupyter.html is located at <project dir>/demo/ directory
+   In the code, we specify the path as "../data/stats.pb.txt" as the notebook file *.ipynb 
+   is located at <project dir>/demo/python/ directory; and test file "stats.pb.txt" is in <project dir>/demo/data/ directory
    
    If you want to move the files in locations or start notebook kernel in different locations, you need to adjust those paths. 
     
@@ -404,7 +414,7 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
    jupyter notebook --NotebookApp.iopub_data_rate_limit=10000000
    ```
 
-## How to viualize the generated feature statistics in browser (javascripts)
+## How to visualize the generated feature statistics in browser (Javascripts)
 
    Google Facets (https://github.com/PAIR-code/facets) has provided Javascripts visualization, 
    it is located in different branch (rather than master branch). 
@@ -412,26 +422,53 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
    This can be seen in demo page works (https://pair-code.github.io/facets/) 
    and the code for that page here: https://github.com/PAIR-code/facets/blob/gh-pages/index.html#L231
    
-   I copied the corresponding CSS, javascripts codes, as well as HTML pages and simplified a bit. 
-   I removed the section that load your own data Javascripts, Facets-Dive and only leaves Facets Overview.
-   
-   You can see the code in demo/javascripts folder. 
-   
    The difference here is that we don't re-generate the features stats from existing file, it will load the 
    probuff string from the file we already generated. 
    
-   using JQuery, you can do this as followings (index.html)
+   Facets has made this simple as you can seen the index.html, here we use JQuery to load the protobuf file 
+   into string and assign to HTML element. You can simply use other way to do it.
    
-   ```
+```
+    <!DOCTYPE html>
+    <html lang="en-US">
+    <head>
+        <meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
+        <title>Visualizations for ML datasets</title>
+    
+        <!-- JS includes -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/1.3.3/webcomponents-lite.js"></script>
+        <link rel="import" href="https://raw.githubusercontent.com/PAIR-code/facets/1.0.0/facets-dist/facets-jupyter.html" >
+    
+    </head>
+    
+    <body>
+    <facets-overview id="elem"></facets-overview>
+    
+    <script>
+    
+      function setupVis() {
+        $.when(protoAjax()).done(function() {
+           console.log("ok");
+        });
+    
+        function protoAjax() {
+         var jqxhr = $.get( {url: "../data/stats.pb.txt"})
+            .done(function(data) {
+                var overview = document.querySelector("#elem");
+                overview.protoInput = data;
+            })
+        }
+      }
+    
+      $( document ).ready(function() {
+        setupVis();
+      });
+    </script>
+    </body>
+    
+    </html>
 
-    $.when(protoAjax()).done(function(protoAjax) {
-      var overview = $("#foelem")[0];
-      overview.protoInput = protoAjax;
-    });
-
-    function protoAjax() {
-      return $.get({url: "../../src/test/resources/data/stats.pb.txt"});
-    }
 
    ``` 
    
@@ -471,5 +508,26 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 ```
 
 
+## API Usage Notes. 
 
-    
+ API FeatureStatsGenerator.protoFromDataFrames() takes three arguments
+ * dataFrames -- List of NameDataFrames
+ * features -- white list of features 
+ * catHistgmLevel -- categorical feature histogram level 
+
+```
+
+  
+  def protoFromDataFrames(dataFrames     : List[NamedDataFrame],
+                          features       : Set[String] = Set.empty[String],
+                          catHistgmLevel : Option[Int] = None): DatasetFeatureStatisticsList = {
+
+```
+
+ Although only ```dataFrames``` is the only one required, suggest pay extra attention to catHistgmLevel. 
+ If the feature is categorical feature such as user email or with high number of unique values, then without specify 
+ this argument will cause the resulting protobuf file size to include all unique values of the categorical feature, 
+ depending on the data size, this can be very large. For data size with  1-2 millions rows, the result can be several 
+ hundreds MB if you have more than one such features. The UI mearly use these to show raw data, so set 
+ catHistgmLevel = Some(20) should be enough. This can significant reduce the result file size.
+
