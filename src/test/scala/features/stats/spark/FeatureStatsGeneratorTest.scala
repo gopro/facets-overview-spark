@@ -113,30 +113,11 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
     import spark.implicits._
 
     val sc = spark.sparkContext
-    var arr = Seq[String]("2005-02-25", "2006-02-25")
-    var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_date($"TestFeatureDate"))
+    var arr = Seq[String]("2021-03-21T13:38:27-0701", "2020-03-21T13:38:27-0701")
+    var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_utc_timestamp($"TestFeatureDate", "utc"))
     var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
     var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
-    assert(dataset.entries.head.`type`.isInt === true)
-
-    var entry:DataEntry = dataset.entries.head
-    val vals = entry.values.collect().map(r => r.getAs[Long](0))
-
-    assert(Array(ts1*1000, ts2*1000) === vals)
-
-    import java.time.{LocalDate, Month}
-
-    val startDate = LocalDate.of(2008, Month.JANUARY, 1)
-    val endDate = LocalDate.of(2009, Month.JANUARY, 1)
-    val numberOfDays = ChronoUnit.DAYS.between(startDate, endDate)
-    var arr1 = Seq[Long](numberOfDays*24*60*60*1000*1000)
-    var df1 = spark.sparkContext.parallelize(arr1).toDF("TestFeatureDate")
-    var dataframes1 = List(NamedDataFrame(name = "testDataSet1", df1))
-    var dataset1:DataEntrySet = generator.toDataEntries(dataframes1).head
-    var entry1:DataEntry = dataset1.entries.head
-    val vals1 = entry1.values.collect().map(r => r.getAs[Long](0))
-
-    assert(vals1.head === 31622400000000L)
+    assert(dataset.entries.head.`type`.isString === true)
   }
 
   test("convertDataType") {

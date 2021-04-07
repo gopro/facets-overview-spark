@@ -1,3 +1,7 @@
+
+0.3.6  2021-04-06 change the date handling logic: instead of converting date to INT ( which use as timestamp), we convert 
+      it to String instead. 
+
 0.3.5 bug fix
   * fix field did not correctly specify data type after converted to numeric data frame
   * fix field values are all nulls, which code can't determine the category of the data type 
