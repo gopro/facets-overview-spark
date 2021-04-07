@@ -15,8 +15,6 @@
 
 
 package features.stats.spark
-import java.text.SimpleDateFormat
-
 import featureStatistics.feature_statistics.FeatureNameStatistics.Type._
 import featureStatistics.feature_statistics.FeatureNameStatistics.{Type => ProtoDataType}
 import featureStatistics.feature_statistics.StringStatistics.FreqAndValue
