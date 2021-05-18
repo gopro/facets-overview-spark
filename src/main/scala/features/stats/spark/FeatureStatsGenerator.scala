@@ -363,7 +363,8 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
     val sumDF = valueDF.mapPartitions { it =>
       it.map { row =>
-        val a: NonZeroInfinite = checkZeroNanInfiniteFun(row.getAs[Double](0))
+        var r :AnyVal = if (row.get(0) == null) Double.NaN else row.getAs[Double](0)
+        val a: NonZeroInfinite = checkZeroNanInfiniteFun(r)
         (colName, a.isZero, a.isPosInfinite, a.isNegInfinite, a.isNan, 1)
       }
     }.toDF(colName, "isZero", "isPosInfi", "isNegInfi", "isNan", "hasValue")
@@ -376,7 +377,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     countsDF.collect.flatMap(row => indexedFields.map(f => f._1.name -> row.getAs[Long](f._2))).toMap
   }
 
-  private def getMedian(spark: SparkSession, colName: String, numNan: Long, numPosinf: Long, numNeginf: Long, filteredValueDF: DataFrame) = {
+  private def getMedian(spark: SparkSession,colName: String,numNan: Long,numPosinf: Long,numNeginf: Long, filteredValueDF: DataFrame) : Double = {
 
     import spark.implicits._
 
@@ -394,17 +395,17 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     }
   }
 
-  private def getStddev(numNan: Long, numPosinf: Long, numNeginf: Long, rdd: RDD[Double]) = {
+  private def getStddev(numNan: Long, numPosinf: Long, numNeginf: Long, rdd: RDD[Double]): Double = {
     if (numNan > 0 || numNeginf > 0 || numPosinf > 0) Double.NaN else rdd.stdev()
   }
 
-  private def getMinValue(numNan: Long, numNeginf: Long, rdd: RDD[Double]) = {
+  private def getMinValue(numNan: Long, numNeginf: Long, rdd: RDD[Double]) : Double = {
     if (numNan > 0) Double.NaN else {
       if (numNeginf > 0) Double.NegativeInfinity else rdd.min()
     }
   }
 
-  private def getMax(numNan: Long, numPosinf: Long, rdd: RDD[Double]) = {
+  private def getMax(numNan: Long, numPosinf: Long, rdd: RDD[Double]) : Double = {
     if (numNan > 0) Double.NaN else {
       if (numPosinf > 0) Double.PositiveInfinity else rdd.max()
     }
@@ -422,7 +423,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     }
   }
 
-  private def getMean(numNan: Long, numPosinf: Long, numNeginf: Long, rdd: RDD[Double]) = {
+  private def getMean(numNan: Long, numPosinf: Long, numNeginf: Long, rdd: RDD[Double]) : Double = {
     if (numNan > 0) Double.NaN else {
       if (numNeginf > 0 && numPosinf > 0)
         Double.NaN
@@ -513,7 +514,7 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
     val valueDF: DataFrame   = entry.values
     val featureName:String   = entry.featureName
-    val countDF : DataFrame  = entry.counts
+//    val countDF : DataFrame  = entry.counts
 
     val basicStats  = getBasicNumStats(valueDF, featureName, dsIndex)
     val stdBuckets  = updateStdHistogramBucket(featureName, basicStats)
