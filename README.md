@@ -520,13 +520,13 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
   
   def protoFromDataFrames(dataFrames     : List[NamedDataFrame],
                           features       : Set[String] = Set.empty[String],
-                          catHistgmLevel : Option[Int] = None): DatasetFeatureStatisticsList = {
+                          catHistgmLevel : Option[Int] = Some(20): DatasetFeatureStatisticsList = {
 
 ```
 
- Although only ```dataFrames``` is the only one required, suggest pay extra attention to catHistgmLevel. 
- If the feature is categorical feature such as user email or with high number of unique values, then without specify 
- this argument will cause the resulting protobuf file size to include all unique values of the categorical feature, 
+ suggest pay extra attention to catHistgmLevel. 
+ If the feature is categorical feature such as user email or with high number of unique values, then set catHistgmLevel to None  
+ will cause the resulting protobuf file size to include all unique values of the categorical feature, 
  depending on the data size, this can be very large. For data size with  1-2 millions rows, the result can be several 
  hundreds MB if you have more than one such features. The UI mearly use these to show raw data, so set 
  catHistgmLevel = Some(20) should be enough. This can significant reduce the result file size.
