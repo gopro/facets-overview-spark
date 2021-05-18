@@ -159,12 +159,12 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     *                           to identify the dataset in the proto.
     * @param catHistgmLevel int, controls the maximum number of levels to display in histograms
     *                           for categorical features. Useful to prevent codes/IDs features
-    *                           from bloating the stats object. Defaults to None.
+    *                           from bloating the stats object. Defaults to 20. Set None for no control
     * @return The feature statistics proto for the provided tables.
     */
   def protoFromDataFrames(dataFrames     : List[NamedDataFrame],
                           features       : Set[String] = Set.empty[String],
-                          catHistgmLevel : Option[Int] = None): DatasetFeatureStatisticsList = {
+                          catHistgmLevel : Option[Int] = Some(20)): DatasetFeatureStatisticsList = {
 
     genDatasetFeatureStats(toDataEntries( dataFrames), features, catHistgmLevel)
 

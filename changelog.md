@@ -1,4 +1,8 @@
+0.4.0  set categorical feature histogram level to 20, instead of infinite. 
+       This avoid user create a big protobuf size in a big dataset with a lot of categorical feature rows.   
+
 0.3.8  bug fix. Handle null value
+
 
 0.3.7  2021-04-10 cleanup
   * leverage HTML <link rel="import">  we imported facets-jupyter.html, as result, we don't need to keep 
