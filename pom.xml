@@ -22,7 +22,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>facets-overview-spark</groupId>
-    <version>0.3.7</version>
+    <version>0.3.8</version>
     <artifactId>facets-overview-spark</artifactId>
     <name>facets-overview-spark</name>
     <organization>
