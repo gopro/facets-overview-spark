@@ -325,7 +325,7 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
    We are going to do the same
 
    * Part 1: Use Spark to generate Spark DataFrames from CSV files (Scala)
-   * Part 1: Pass the data frames to the features stats generator to generate protobuf (Scala + Spark), probuf is save to local file
+   * Part 2: Pass the data frames to the features stats generator to generate protobuf (Scala + Spark), probuf is save to local file
    * Part 3  In Jupyter Notebook, we read the protobuf from file and encoded to base64 if needed.
    * Part 4: Pass the probuf structure to HTML Display
 
