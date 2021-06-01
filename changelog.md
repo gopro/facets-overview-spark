@@ -1,3 +1,7 @@
+## change Log, latest version on top
+0.4.1  README and change log changes, created the branch for v.0.4.1 Apache Spark 2.4.x development
+       The main branch will be upgrade to Apache Spark 3.0 
+
 0.4.0  set categorical feature histogram level to 20, instead of infinite. 
        This avoid user create a big protobuf size in a big dataset with a lot of categorical feature rows.   
 
