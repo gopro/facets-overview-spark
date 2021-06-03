@@ -114,7 +114,7 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
 
     val sc = spark.sparkContext
     var arr = Seq[String]("2021-03-21T13:38:27-0701", "2020-03-21T13:38:27-0701")
-    var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_utc_timestamp($"TestFeatureDate", "utc"))
+    var df = sc.parallelize(arr).toDF("TestFeatureDate").select(to_utc_timestamp($"TestFeatureDate", "UTC"))
     var dataframes = List(NamedDataFrame(name = "testDataSet1", df))
     var dataset:DataEntrySet = generator.toDataEntries(dataframes).head
     assert(dataset.entries.head.`type`.isString === true)

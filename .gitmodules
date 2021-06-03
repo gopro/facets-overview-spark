@@ -1,0 +1,3 @@
+[submodule "ecosystem"]
+	path = ecosystem
+	url = https://github.com/tensorflow/ecosystem/

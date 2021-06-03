@@ -1,4 +1,26 @@
 ## change Log, latest version on top
+
+0.5.0  update the dependency to support Spark 3.0.1 
+   *   Spark 3 requires Scala 2.12, we have to few dependency upgrade as well, in particular,
+       scala-maven-plugin, scalatest, spark-tensorflow-connector and scalapb
+   *   scala-maven-plugin version 4.3.1 works, but higher version such as 4.4.x, 4.5.x do not work.
+       If you use version 4.4.x, 4.5.x, you will get error identical to the one reported in : 
+       http://5.9.10.113/66489291/project-build-with-circle-ci-is-failing
+   *   with change to scalapb to the current version, the protobuf version argument is changed. 
+       in scalapb 0.9.8 if the protobuf version is 3.8.0 then the argument is v380 and v261 for version 2.6.1
+       in scalapb 0.11.0 we need to specify v3.8.0 for version 3.8.0
+   *   spark-tensorflow-connector has no scala 2.12 releases at the moment, although the master branch does 
+       has code for scala 2.12. Instead of waiting for the official release, we temporarily build the dependency ourselves. 
+       We add git submodule of tensorflow/ecosystem, then build the dependency locally
+       ```
+           cd ecosystem/spark/spark-tensorflow-connector;
+           mvn clean install 
+       ```
+   *   change scalatest dependency to version 3.0.5. 
+       when change the scalatest to the later versions > "3.0.5", the tests will show errors like ```"object FunSuite is not a member of package org.scalatest"```  
+
+
+
 0.4.1  README and change log changes, created the branch for v.0.4.1 Apache Spark 2.4.x development
        The main branch will be upgrade to Apache Spark 3.0 
 
