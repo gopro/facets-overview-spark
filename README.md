@@ -492,10 +492,12 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 ## Development
  This is maven project, so it usually follows the standard maven commands for build. 
 
-### Build
+### Build 
 ```
     mvn clean package
 ```
+    * this works for Apache Spark 2.4.x (branch v0.4.1), but we need additional steps for Apache Spark 3
+    * see section on Apache Spark 3
 
 ### Test
 ```
@@ -531,3 +533,38 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
  hundreds MB if you have more than one such features. The UI mearly use these to show raw data, so set 
  catHistgmLevel = Some(20) should be enough. This can significant reduce the result file size.
 
+## Apache Spark 3 support and branches
+
+note we have upgraded the code to support Apache spark 3. To do so, we created the following branches
+
+* v0.4.1 branch is used for Apache Spark 2.4.x, Scala 2.11
+
+* main branch is now used for Apache Spark 3, and Scala 2.12 
+
+  Apache Spark 3 requires scala 2.12. Facets-overview-spark depends on Spark-tensorflow-connector. 
+  At this time (2021-06-02), spark-tensorflow-connector has no release jar available at maven central repository for Scala 2.12
+  so we temporarily add git submodule to the project, so we can build Spark-tensorflow-connector locally
+
+  The details of git submodule can be found at [submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules),
+  when clone the project, you need to 
+  ```
+    git clone --recurse-submodules git@github.com:gopro/facets-overview-spark.git
+  ```
+  to include tensorflow ecosystem submodule, then
+  ```
+     cd ecosystem/spark/spark-tensorflow-connector;
+     mvn clean install 
+  ```
+  once you have the jar created in local mvn repository, then you can build normally in the current project.
+
+  ```
+      cd facets-overview-spark
+      mvn clean package
+  ```
+
+  If you already have cloned the project without --recurse-submodules. 
+  You need to do git submodule init and git submodule update as described in above documentation
+  
+  
+
+ 
