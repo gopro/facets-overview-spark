@@ -278,9 +278,9 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
         assert(strStats.unique == 10)
       }
     }
-//    val protoFile = new File("target", "str_test_stats.pb")
-//    val path = ProtoUtils.persistProto(proto, base64Encode = false, protoFile)
-//    val json = ProtoUtils.toJson(proto)
-
+    val protoFile = new File("target", "str_test_stats.pb")
+    val path = ProtoUtils.persistProto(proto, base64Encode = false, protoFile)
+    val json = ProtoUtils.toJson(proto)
+    assert(json.nonEmpty)
   }
 }

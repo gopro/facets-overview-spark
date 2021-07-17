@@ -1,5 +1,24 @@
 ## change Log, latest version on top
 
+0.5.1  better handling data type exception & dependency version conflicts
+   *   shade com.google.protobuf.* 
+       according https://scalapb.github.io/docs/sparksql/
+       "Spark ships with an old version of Google's Protocol Buffers runtime that is not 
+        compatible with the current version. Therefore, we need to shade our copy of the 
+        Protocol Buffer runtime."
+   *   "Spark 3 also ships with an incompatible version of scala-collection-compat.", 
+       although our unit test show passes, without any changes, but we experienced exceptions 
+       when trying to convert protobuf to json using json4s. Even trying to shade scala-collection-compat
+       doesn't help. here we did not shade the scala-collection-compact 
+   *   instead of directly cast categorical data type to string, 
+       the logic is changed to check the data type first before extract the value. 
+       Also catch the unexpected exception to associate the feature with exception. 
+       Many cases, where spark considered the data is string, if it is no explicitly cast to decimals. 
+       this will help debugging which feature is the issue. 
+   *   update readme     
+       
+   
+
 0.5.0  update the dependency to support Spark 3.0.1 
    *   Spark 3 requires Scala 2.12, we have to few dependency upgrade as well, in particular,
        scala-maven-plugin, scalatest, spark-tensorflow-connector and scalapb
