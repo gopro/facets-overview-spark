@@ -16,10 +16,10 @@
 
 package features.stats.spark
 import featureStatistics.feature_statistics.FeatureNameStatistics.{Type => ProtoDataType}
-import java.io.File
-import java.nio.file.{Files, Paths}
-import java.time.temporal.ChronoUnit
 
+import java.io.File
+import java.nio.file.{Files, Path, Paths}
+import java.time.temporal.ChronoUnit
 import featureStatistics.feature_statistics.{DatasetFeatureStatisticsList, FeatureNameStatistics}
 import featureStatistics.feature_statistics.Histogram.HistogramType.QUANTILES
 import features.stats.ProtoUtils
@@ -278,8 +278,9 @@ class FeatureStatsGeneratorTest extends StatsGeneratorTestBase {
         assert(strStats.unique == 10)
       }
     }
-    val protoFile = new File("target", "str_test_stats.pb")
-    val path = ProtoUtils.persistProto(proto, base64Encode = false, protoFile)
+
+    val protoFile : Path = Files.createTempFile("test", "pb")
+    val path = ProtoUtils.persistProto(proto, base64Encode = false, protoFile.toFile)
     val json = ProtoUtils.toJson(proto)
     assert(json.nonEmpty)
   }

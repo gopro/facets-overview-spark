@@ -1,9 +1,10 @@
 package features.stats
 
 import java.io.File
-
 import features.stats.spark.{NamedDataFrame, StatsGeneratorTestBase}
 import org.apache.spark.sql.DataFrame
+
+import java.nio.file.{Files, Path}
 
 class ProtoUtilsTest extends StatsGeneratorTestBase{
   import spark.implicits._
@@ -14,11 +15,11 @@ class ProtoUtilsTest extends StatsGeneratorTestBase{
     val dataFrames = List(NamedDataFrame(name = "testDataSet", df))
     val p = generator.protoFromDataFrames(dataFrames, catHistgmLevel = Some(2))
 
-    val protoFile = new File("target", "test_proto.pb")
-    val path = ProtoUtils.persistProto(p, base64Encode = false, protoFile)
+    val protoFile : Path = Files.createTempFile("test", "pb")
+    val path = ProtoUtils.persistProto(p, base64Encode = false, protoFile.toFile)
     assert(path.toFile.exists())
-    assert(path.toFile === protoFile)
-    assert(protoFile.exists())
+    assert(path === protoFile)
+    assert(protoFile.toFile.exists())
   }
 
 }
