@@ -536,9 +536,8 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 
 
 #### pay attention to data types
- * The library takes the data types of the feature from DataFrame schema. If the schema is derived bu Spark from the data
-   the schema may not accurate, the numerical data or integer data may become String type. especially the data frame is 
-   generated from SQL.
+ * The library takes the data types of the feature from DataFrame schema. If Spark derives the schema from the data using Spark SQL,
+   the schema may not accurate, the numerical data or integer data may become as other types depending on the data,
 
 ```
  val df = spark.sql("select * from mytable")
