@@ -512,6 +512,7 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
 
 ## API Usage Notes. 
 
+#### pay attention to categorical features
  API FeatureStatsGenerator.protoFromDataFrames() takes three arguments
  * dataFrames -- List of NameDataFrames
  * features -- white list of features 
@@ -532,6 +533,35 @@ notice here that DatasetFeatureStatisticsList is class generated based on protob
  depending on the data size, this can be very large. For data size with  1-2 millions rows, the result can be several 
  hundreds MB if you have more than one such features. The UI mearly use these to show raw data, so set 
  catHistgmLevel = Some(20) should be enough. This can significant reduce the result file size.
+
+
+#### pay attention to data types
+ * The library takes the data types of the feature from DataFrame schema. If Spark derives the schema from the data using Spark SQL,
+   the schema may not accurate, the numerical data or integer data may become as other types depending on the data,
+
+```
+ val df = spark.sql("select * from mytable")
+```
+ in many cases, it is necessary to explicit set the data type in SQL, such as
+
+ ```
+ select 
+      field1 
+    , cast (field2 as double) as field2
+    , cast (field3 as Int) as field3
+    from mytable
+    
+ ```
+  * boolean data type needs to be converted to integer type 
+
+   ```
+      select case when booleanfield = true then 1 else 0 end as booleanfield
+      from mytable 
+   ```
+
+ * Date/Datetime data type
+   The facets-overview doesn't handle Date/Datatime data type, therefore, 
+   one needs to cast date/datatime to categorical data type before pass the data to facets-overview     
 
 ## Apache Spark 3 support and branches
 

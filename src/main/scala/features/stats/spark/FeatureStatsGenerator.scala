@@ -26,6 +26,7 @@ import org.apache.spark.sql.functions.udf
 import org.apache.spark.sql.types._
 
 import scala.collection.mutable
+import scala.util.{Failure, Success, Try}
 
 /**
   *
@@ -561,31 +562,43 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
     val basicStats  = getBasicStringStats(valueDF, featureName)
     val spark = valueDF.sqlContext.sparkSession
     val commonStats:CommonStatistics  = getCommonStats(dsSize, entry, basicStats.numNan,dsIndex)
+    val colDF: DataFrame = valueDF.select(featureName)
 
-    val colDF : DataFrame  = valueDF.select(featureName)
-    val avgLen  : Double   = colDF.rdd.map{a =>
-                                            val s = a.getAs[String](0)
-                                            if (s == null || s.isEmpty) 0 else s.length
-                                          }
-                                      .mean()
+    Try {
+      val avgLen: Double = colDF.rdd.map { a =>
+            val v =  a.get(0)
+            if (v == null) 0 else {
+              v match {
+                case x:String => x.length
+                case x: Object => x.toString.length
+              }
+            }
+        }.mean()
 
-    val distinctCount = colDF.rdd.distinct.count()
-    val ranksRdd = colDF.rdd.mapPartitions(it => it.map(r => (r.getAs[String](0),1L)))
-                                                   .reduceByKey(_+_)
-                                                   .sortBy(a =>  -1 * a._2)
-    val ranks :Array[(String,Long)] = histgmCatLevelsCount.map(ranksRdd.take).getOrElse(ranksRdd.collect)
-    val buckets = ranks.zipWithIndex.map { a =>
-                    val ((cat, count), index) = a
-                    var category = if (cat == null)  "null" else cat
-                    RankHistogram.Bucket(lowRank = index, highRank = index, sampleCount = count, label = category)
-                  }
+      val distinctCount = colDF.rdd.distinct.count()
+      val ranksRdd = colDF.rdd.mapPartitions(it => it.map(r => (r.getAs[String](0), 1L)))
+        .reduceByKey(_ + _)
+        .sortBy(a => -1 * a._2)
+      val ranks: Array[(String, Long)] = histgmCatLevelsCount.map(ranksRdd.take).getOrElse(ranksRdd.collect)
+      val buckets = ranks.zipWithIndex.map { a =>
+        val ((cat, count), index) = a
+        var category = if (cat == null) "null" else cat
+        RankHistogram.Bucket(lowRank = index, highRank = index, sampleCount = count, label = category)
+      }
 
-    val top2Buckets = buckets.take(2).map {b =>FreqAndValue(value = b.label, frequency = b.sampleCount)}
-    StringStatistics(Some(commonStats),
-                     topValues      = top2Buckets,
-                     unique         = distinctCount,
-                     avgLength      = avgLen.toFloat,
-                     rankHistogram  = Some(RankHistogram(buckets)))
+      val top2Buckets = buckets.take(2).map { b => FreqAndValue(value = b.label, frequency = b.sampleCount) }
+      StringStatistics(Some(commonStats),
+        topValues = top2Buckets,
+        unique = distinctCount,
+        avgLength = avgLen.toFloat,
+        rankHistogram = Some(RankHistogram(buckets)))
+    } match {
+      case Success(value) => value
+      case Failure(ex) =>
+          colDF.show(100)
+         throw new RuntimeException(s"failed to get getStringStats() for feature $featureName", ex)
+    }
+
   }
 
 
