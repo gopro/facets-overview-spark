@@ -251,7 +251,9 @@ class FeatureStatsGenerator(datasetProto: DatasetFeatureStatisticsList) {
 
     val allDatasets = datasetProto
 
-    val dfsList : List[DatasetFeatureStatistics]= datasets.zipWithIndex.map { a =>
+    val filteredDatasets = datasets.filter(ds => ds.size > 0)
+
+    val dfsList : List[DatasetFeatureStatistics]= filteredDatasets.zipWithIndex.map { a =>
       val (ds, dsIndex) = a
 
       def includeFeature(feature:String) : Boolean =

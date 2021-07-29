@@ -1,4 +1,6 @@
-## change Log, latest version on top
+## change Log, most recent version on top
+
+0.5.2  skip empty DataFrame when generating statistics
 
 0.5.1  better handling data type exception & dependency version conflicts
    *   shade com.google.protobuf.* 
